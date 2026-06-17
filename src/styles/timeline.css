@@ -1,0 +1,166 @@
+/* 卡片與時間軸節點樣式 */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--card-width);
+  height: var(--card-height); /* 固定 1200×1200，保證匯出尺寸一致 */
+  background: var(--color-bg);
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* 不切分：單張卡片，寬度固定、高度依內容自動延伸 */
+.card--single {
+  height: auto;
+  min-height: var(--card-height);
+}
+
+/* 深藍頁首：標題在左、logo 在右，同一行垂直置中 */
+.card-header {
+  flex: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 60px;
+  background: var(--color-header);
+  color: #fff;
+}
+
+.card-header .brand {
+  /* logo 置於右側 */
+  order: 2;
+  flex: none;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+
+.card-header .brand svg {
+  display: block;
+  height: 64px;
+  width: auto;
+}
+
+.card-header .mission {
+  /* 標題置於左側、放大 */
+  order: 1;
+  font-size: 48px;
+  font-weight: bold;
+  line-height: 1.15;
+}
+
+/* 內容區：垂直置中，使上下留白平衡 */
+.card-body {
+  position: relative;
+  flex: 1; /* 撐滿剩餘空間，將頁尾推至底部 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 60px 20px 60px;
+}
+
+/* 時間軸容器：包住連線與節點，連線高度跟著內容（置中時不突出） */
+.timeline {
+  position: relative;
+}
+
+.timeline-line {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 15px; /* 對齊圓點中心：timeline 起點 + 15 + 2 = 圓點中心 */
+  width: 4px;
+  background: var(--color-line);
+}
+
+/* 時間軸項目（年代徽章 + 節點），項目之間留間距 */
+.tl-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.tl-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 西元年徽章（各年代起點）：深藍底白字，覆蓋連線 */
+.year-badge {
+  position: relative; /* 疊在 timeline-line 之上 */
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 8px 22px;
+  background: var(--color-header);
+  color: #fff;
+  font-size: 32px;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+/* 單一節點 */
+.node {
+  position: relative;
+  padding-left: 48px; /* 為圓點與連線留出空間 */
+}
+
+.node-dot {
+  position: absolute;
+  /* 置中對齊垂直連線（line 中心 77px，node 內容起點 60px）*/
+  left: 1px;
+  top: 2px;
+  width: 32px;
+  height: 31px;
+}
+
+.node-dot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.node-date {
+  color: var(--color-text-year);
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.node-content {
+  margin-top: 6px;
+  color: var(--color-text-content);
+  font-size: 28px;
+  line-height: 1.6; /* 仍 ≥1.5，符合 WCAG 1.4.12 */
+}
+
+.node-content .para {
+  margin: 0 0 12px; /* 段落間距，取代原文空行的過大留白 */
+  /* 保留段內單一換行與空白，文字原樣呈現 */
+  white-space: pre-wrap;
+}
+
+.node-content .para:last-child {
+  margin-bottom: 0;
+}
+
+/* 卡片頁尾：資料來源 / 更新日期，同一行並排 */
+.card-footer {
+  flex: none;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  padding: 18px 60px 22px;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-text-year);
+  font-size: 24px;
+  line-height: 1.4;
+}
+
+.card-footer .footer-line {
+  opacity: 0.85;
+}

@@ -1,0 +1,156 @@
+:root {
+  /* 視覺設計 Token 系統 */
+  --color-header: #004E98;
+  --color-bg: #F7F7F7;
+  --color-node: #004E98;
+  --color-line: #B9BBC2;
+  --color-text-year: #1F2933;
+  --color-text-content: #12141A;
+  --card-width: 1200px;
+  --card-height: 1200px;
+  --header-height: 120px; /* 精簡頁首 */
+
+  /* 預覽頁面背景 */
+  --color-page-bg: #1a1a2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-page-bg);
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC",
+    "Helvetica Neue", Arial, sans-serif;
+  color: var(--color-text-content);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 固定工具列 */
+.toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 24px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  color: #fff;
+}
+
+.toolbar-title {
+  font-size: 18px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 切分／不切分 模式切換 */
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  padding: 8px 16px;
+  font-size: 15px;
+  color: #fff;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--color-header);
+  font-weight: bold;
+}
+
+/* 刷新鈕：重新載入表單最新資料 */
+.btn-refresh {
+  flex: none;
+  padding: 10px 16px;
+  font-size: 16px;
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 刷新成功的短暫提示 */
+.btn-refresh.is-done {
+  color: #fff;
+  background: #2e9e5b;
+  border-color: #2e9e5b;
+  opacity: 1;
+}
+
+.btn-export {
+  flex: none;
+  padding: 10px 20px;
+  font-size: 16px; /* WCAG: 不低於 16px 可讀性下限 */
+  font-weight: bold;
+  color: #fff;
+  background: var(--color-header);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-export:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 卡片容器：預設預覽模式，垂直堆疊、置中、深色背景 */
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 100px 0 60px;
+}
+
+/* 錯誤訊息 */
+.error-message {
+  margin-top: 120px;
+  padding: 24px 32px;
+  font-size: 20px;
+  color: #fff;
+  background: rgba(180, 40, 40, 0.85);
+  border-radius: 8px;
+}

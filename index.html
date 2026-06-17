@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNA 時間軸圖卡產生器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="src/styles/main.css">
+  <link rel="stylesheet" href="src/styles/timeline.css">
+</head>
+<body>
+  <div id="toolbar" class="toolbar">
+    <span id="mission-title" class="toolbar-title"></span>
+    <div class="toolbar-actions">
+      <div class="mode-toggle">
+        <button id="btn-mode-split" class="mode-btn">切分</button>
+        <button id="btn-mode-single" class="mode-btn">不切分</button>
+      </div>
+      <button id="btn-refresh" class="btn-refresh" title="重新載入表單最新資料">↻ 刷新</button>
+      <button id="btn-export" class="btn-export">匯出所有卡片</button>
+    </div>
+  </div>
+  <div id="app" class="app"></div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
