@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNA 圖卡 Dashboard</title>
+  <link rel="stylesheet" href="src/styles/main.css">
+  <link rel="stylesheet" href="src/styles/dashboard.css">
+</head>
+<body>
+  <div id="toolbar" class="toolbar">
+    <span class="toolbar-title">CNA 圖卡 Dashboard</span>
+  </div>
+
+  <main class="dashboard">
+    <section class="dash-card">
+      <h1 class="dash-heading">選擇圖卡</h1>
+      <p class="dash-hint">貼上 Google 試算表網址，從分頁清單挑選一張圖卡開啟。</p>
+
+      <label class="dash-label" for="sheet-url">試算表網址</label>
+      <div class="dash-row">
+        <input
+          id="sheet-url"
+          class="dash-input"
+          type="url"
+          placeholder="https://docs.google.com/spreadsheets/d/…"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button id="btn-connect" class="dash-btn dash-btn-primary" type="button">連結試算表</button>
+      </div>
+
+      <label class="dash-label" for="tab-select">選擇分頁</label>
+      <div class="dash-row">
+        <select id="tab-select" class="dash-select" disabled>
+          <option value="">尚未連結試算表</option>
+        </select>
+        <button id="btn-open" class="dash-btn dash-btn-primary" type="button" disabled>開啟</button>
+      </div>
+
+      <div id="dash-status" class="dash-status" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module" src="src/dashboard.js"></script>
+</body>
+</html>
