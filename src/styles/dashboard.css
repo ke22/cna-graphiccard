@@ -1,0 +1,134 @@
+.dashboard {
+  min-height: 100vh;
+  padding: 120px 24px 56px;
+  background: var(--color-page-bg);
+}
+
+.dash-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 32px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.dash-heading {
+  margin: 0 0 8px;
+  color: var(--color-text-year);
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.dash-hint {
+  margin: 0 0 28px;
+  color: #5b6472;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.dash-label {
+  display: block;
+  margin: 18px 0 8px;
+  color: var(--color-text-year);
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.dash-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.dash-input,
+.dash-select {
+  min-width: 0;
+  flex: 1;
+  height: 46px;
+  padding: 0 14px;
+  color: var(--color-text-content);
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 16px;
+}
+
+.dash-input:focus,
+.dash-select:focus {
+  border-color: var(--color-header);
+  outline: 3px solid rgba(0, 78, 152, 0.16);
+}
+
+.dash-select:disabled,
+.dash-input:disabled {
+  color: #737b88;
+  background: #f0f2f5;
+}
+
+.dash-btn {
+  flex: none;
+  min-width: 108px;
+  height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.dash-btn-primary {
+  color: #fff;
+  background: var(--color-header);
+}
+
+.dash-btn:hover:not(:disabled) {
+  opacity: 0.86;
+}
+
+.dash-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.dash-status {
+  min-height: 24px;
+  margin-top: 22px;
+  color: #5b6472;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.dash-status.is-error {
+  color: #b42318;
+  font-weight: bold;
+}
+
+.dash-status.is-success {
+  color: #24754f;
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    padding: 0 16px;
+  }
+
+  .dashboard {
+    padding: 92px 16px 32px;
+  }
+
+  .dash-card {
+    padding: 24px 18px;
+  }
+
+  .dash-row {
+    flex-direction: column;
+  }
+
+  .dash-btn {
+    width: 100%;
+  }
+}

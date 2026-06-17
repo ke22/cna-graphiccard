@@ -37,6 +37,7 @@ export async function exportCards(button) {
   if (btn) btn.disabled = true;
 
   try {
+    document.body.classList.add('is-exporting');
     for (let i = 0; i < total; i++) {
       const canvas = await window.html2canvas(cards[i], {
         scale: 2,
@@ -47,6 +48,7 @@ export async function exportCards(button) {
       if (btn) btn.textContent = `匯出中… (${i + 1}/${total})`;
     }
   } finally {
+    document.body.classList.remove('is-exporting');
     if (btn) {
       btn.textContent = DEFAULT_LABEL;
       btn.disabled = false;

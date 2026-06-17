@@ -139,7 +139,9 @@ export async function loadMeta(missionName) {
  * @throws {Error} 當任務不存在或所有來源皆無法載入時，錯誤訊息包含任務名稱
  */
 export async function loadNodes(missionName, sheetUrlOverride) {
-  const { csv: csvFile, sheet } = await resolveEntry(missionName);
+  const { csv: csvFile, sheet } = missionName
+    ? await resolveEntry(missionName)
+    : { csv: '', sheet: '' };
   const sheetUrl = sheetUrlOverride || sheet;
 
   let csvText;

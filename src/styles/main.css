@@ -59,7 +59,28 @@ body {
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mission-select {
+  width: min(320px, 28vw);
+  height: 38px;
+  padding: 0 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 15px;
+}
+
+.mission-select:disabled {
+  opacity: 0.55;
+}
+
+.mission-select option {
+  color: #12141a;
 }
 
 /* 切分／不切分 模式切換 */
@@ -142,7 +163,52 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 100px 0 60px;
+  padding: 84px 0 40px;
+}
+
+.card-preview {
+  width: calc(var(--card-width) * var(--preview-scale, 1));
+  height: calc(var(--card-height) * var(--preview-scale, 1));
+}
+
+.card-preview--single {
+  height: auto;
+}
+
+.card-preview > .card {
+  transform: scale(var(--preview-scale, 1));
+  transform-origin: top left;
+}
+
+body.is-exporting .card-preview {
+  width: var(--card-width);
+  height: auto;
+}
+
+body.is-exporting .card-preview > .card {
+  transform: none;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    align-items: flex-start;
+    height: auto;
+    min-height: 60px;
+    padding: 12px 16px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .mission-select {
+    width: min(100%, 260px);
+  }
+
+  .app {
+    padding-top: 112px;
+  }
 }
 
 /* 錯誤訊息 */
