@@ -55,6 +55,10 @@
   font-size: 16px;
 }
 
+.dash-select-template {
+  flex: 0 0 210px;
+}
+
 .dash-input:focus,
 .dash-select:focus {
   border-color: var(--color-header);
@@ -126,6 +130,10 @@
 
   .dash-row {
     flex-direction: column;
+  }
+
+  .dash-select-template {
+    flex-basis: auto;
   }
 
   .dash-btn {

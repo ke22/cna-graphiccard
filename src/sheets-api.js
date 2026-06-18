@@ -57,7 +57,17 @@ export function buildGvizCsvUrl(spreadsheetId, sheetId) {
   );
 }
 
-export function buildTemplateUrl(spreadsheetId, sheetId, title) {
+export function buildTemplateUrl(spreadsheetId, sheetId, title, options = {}) {
   const gvizUrl = buildGvizCsvUrl(spreadsheetId, sheetId);
-  return `index.html?sheet=${encodeURIComponent(gvizUrl)}&title=${encodeURIComponent(title)}`;
+  const params = new URLSearchParams({
+    sheet: gvizUrl,
+    title,
+  });
+
+  if (options.template) params.set('template', options.template);
+  if (options.split !== undefined && options.split !== null && options.split !== '') {
+    params.set('split', String(options.split));
+  }
+
+  return `index.html?${params.toString()}`;
 }

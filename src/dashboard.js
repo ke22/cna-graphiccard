@@ -10,6 +10,7 @@ const STORAGE_KEY = 'cna-dashboard-sheet-url';
 const sheetUrlInput = document.getElementById('sheet-url');
 const connectBtn = document.getElementById('btn-connect');
 const tabSelect = document.getElementById('tab-select');
+const templateSelect = document.getElementById('template-select');
 const openBtn = document.getElementById('btn-open');
 const statusEl = document.getElementById('dash-status');
 
@@ -87,7 +88,8 @@ function openSelectedTab() {
   const target = buildTemplateUrl(
     currentSpreadsheetId,
     selected.value,
-    selected.dataset.title || selected.textContent || ''
+    selected.dataset.title || selected.textContent || '',
+    { template: templateSelect ? templateSelect.value : '' }
   );
   window.location.href = target;
 }

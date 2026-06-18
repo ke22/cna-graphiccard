@@ -46,14 +46,20 @@ The dashboard SHALL list the connected spreadsheet's tabs by calling the Google 
 - **WHEN** the Sheets API returns an empty `sheets[]` array
 - **THEN** the dashboard SHALL display an error message stating no usable tabs exist
 
-### Requirement: Open selected tab in the timeline template
+### Requirement: Open selected tab in the selected template
 
-The dashboard SHALL open the selected tab in the existing template by navigating to `index.html` with a `sheet` query parameter set to the tab's gviz CSV export URL and a `title` parameter set to the tab's name, both URL-encoded. The dashboard SHALL NOT modify the template's data-loading, pagination, rendering, or export logic.
+The dashboard SHALL let the editor choose a template and open the selected tab in the existing template page by navigating to `index.html` with a `sheet` query parameter set to the tab's gviz CSV export URL, a `title` parameter set to the tab's name, and a `template` parameter set to the selected template. The dashboard SHALL NOT modify the template's data-loading, pagination, rendering, or export logic.
 
 #### Scenario: Opening a selected tab
 
 - **WHEN** a tab is selected and the editor triggers open
-- **THEN** the dashboard SHALL navigate to `index.html?sheet=<encoded gviz CSV URL for that gid>&title=<encoded tab title>`
+- **THEN** the dashboard SHALL navigate to `index.html?sheet=<encoded gviz CSV URL for that gid>&title=<encoded tab title>&template=<selected template>`
+
+#### Scenario: Opening headline template
+
+- **WHEN** a tab is selected, the editor selects `headline`, and the editor triggers open
+- **THEN** the dashboard SHALL navigate to a URL containing `template=headline`
+- **AND** the template page SHALL render using the headline template
 
 #### Scenario: Open attempted with no tab selected
 
@@ -64,11 +70,11 @@ The dashboard SHALL open the selected tab in the existing template by navigating
 
 - **GIVEN** spreadsheet ID `1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8` and selected tab title `美伊戰爭大事記` with `sheetId` `0`
 - **WHEN** the editor opens the tab
-- **THEN** the target URL SHALL be `index.html?sheet=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2F1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8%2Fgviz%2Ftq%3Ftqx%3Dout%3Acsv%26gid%3D0&title=%E7%BE%8E%E4%BC%8A%E6%88%B0%E7%88%AD%E5%A4%A7%E4%BA%8B%E8%A8%98`
+- **THEN** the target URL SHALL be `index.html?sheet=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2F1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8%2Fgviz%2Ftq%3Ftqx%3Dout%3Acsv%26gid%3D0&title=%E7%BE%8E%E4%BC%8A%E6%88%B0%E7%88%AD%E5%A4%A7%E4%BA%8B%E8%A8%98&template=timeline`
 
 ### Requirement: Switch spreadsheet tabs from the timeline template
 
-When the template is opened with a `sheet` query parameter that contains a Google spreadsheet ID and gid, the template SHALL show a toolbar dropdown listing the same spreadsheet tabs. Changing the dropdown SHALL navigate directly to the selected tab's `index.html?sheet=<encoded gviz CSV URL>&title=<encoded tab title>` URL.
+When the template is opened with a `sheet` query parameter that contains a Google spreadsheet ID and gid, the template SHALL show a toolbar dropdown listing the same spreadsheet tabs. Changing the dropdown SHALL navigate directly to the selected tab's `index.html?sheet=<encoded gviz CSV URL>&title=<encoded tab title>` URL while preserving the current `template` and `split` query parameters when present.
 
 #### Scenario: Template opened from dashboard
 
@@ -80,13 +86,31 @@ When the template is opened with a `sheet` query parameter that contains a Googl
 
 - **WHEN** the editor selects another tab in the template toolbar dropdown
 - **THEN** the template SHALL navigate to the selected tab's encoded gviz CSV URL and title
+- **AND** the target URL SHALL preserve the current `template` query parameter when present
 
 ##### Example: Switch from gid 0 to gid 123456
 
 - **GIVEN** the template is displaying spreadsheet ID `1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8` with current `gid=0`
+- **AND** the template URL contains `template=headline`
 - **AND** the tab dropdown contains title `第二張圖卡` with `sheetId` `123456`
 - **WHEN** the editor selects `第二張圖卡`
-- **THEN** the target URL SHALL be `index.html?sheet=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2F1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8%2Fgviz%2Ftq%3Ftqx%3Dout%3Acsv%26gid%3D123456&title=%E7%AC%AC%E4%BA%8C%E5%BC%B5%E5%9C%96%E5%8D%A1`
+- **THEN** the target URL SHALL be `index.html?sheet=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2F1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8%2Fgviz%2Ftq%3Ftqx%3Dout%3Acsv%26gid%3D123456&title=%E7%AC%AC%E4%BA%8C%E5%BC%B5%E5%9C%96%E5%8D%A1&template=headline`
+
+### Requirement: Switch template from the template toolbar
+
+The template page SHALL show a toolbar template dropdown after loading a mission or sheet URL. The dropdown SHALL reflect the active template and changing it SHALL navigate to the same page state with the selected `template` query parameter while preserving the current `mission` or `sheet`, `title`, and `split` parameters.
+
+#### Scenario: Template dropdown reflects active headline template
+
+- **WHEN** the template page loads with `template=headline`
+- **THEN** the toolbar template dropdown SHALL select `headline`
+
+#### Scenario: Switching template in toolbar
+
+- **GIVEN** the template page is displaying a sheet URL with `title=type_2` and `split=0`
+- **WHEN** the editor selects `timeline` in the toolbar template dropdown
+- **THEN** the page SHALL navigate to a URL preserving the same `sheet`, `title`, and `split=0`
+- **AND** the URL SHALL contain `template=timeline`
 
 ### Requirement: Fit timeline preview to the viewport
 

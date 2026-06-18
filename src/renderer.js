@@ -56,18 +56,34 @@ export function hasFooter() {
 }
 
 /**
- * 渲染單一時間軸節點為 DOM 元素（外層 .tl-item，可含年代徽章）。
- * 多段落內容（以 \n\n 分隔）拆分為多個 <p>。
- * 當 node.badge 為真時，於節點上方插入「{node.year}年」徽章（跨年分段）。
- *
- * @param {{year?: string, date: string, content: string, badge?: boolean}} node
+ * 建立時間軸圓點元素（.node-dot）。各版型的節點共用此圓點，故由渲染框架提供。
+ * 每個圓點的 SVG filter id 需唯一，避免重複 id 導致陰影參照錯亂。
  * @returns {HTMLElement}
  */
-export function renderNode(node) {
+export function createDot() {
+  const dot = document.createElement('span');
+  dot.className = 'node-dot';
+  if (currentDotSvg) {
+    dotSeq += 1;
+    dot.innerHTML = currentDotSvg.replace(/filter0_d_18570_652/g, `dotshadow_${dotSeq}`);
+  }
+  return dot;
+}
+
+/**
+ * 將單一節點包成時間軸項目（外層 .tl-item，可含年代徽章）。
+ * 年代徽章為各版型共用的跨年分段行為，故由框架統一渲染；節點內部結構（.node）
+ * 交由所選版型的 renderNode 產生。此函式同時供斷頁量測使用，確保徽章高度納入量測。
+ *
+ * @param {{year?: string, badge?: boolean}} node
+ * @param {{renderNode: (node: object) => HTMLElement}} template - 目前版型模組
+ * @returns {HTMLElement}
+ */
+export function renderItem(node, template) {
   const item = document.createElement('div');
   item.className = 'tl-item';
 
-  // 年代徽章：此節點為某年代起點時，於節點上方插入
+  // 年代徽章：此節點為某年代起點時，於節點上方插入（跨年分段，各版型共用）
   if (node.badge && node.year) {
     const badge = document.createElement('div');
     badge.className = 'year-badge';
@@ -75,47 +91,19 @@ export function renderNode(node) {
     item.appendChild(badge);
   }
 
-  const el = document.createElement('div');
-  el.className = 'node';
-
-  const dot = document.createElement('span');
-  dot.className = 'node-dot';
-  if (currentDotSvg) {
-    // 每個圓點的 filter id 需唯一，避免重複 id 導致陰影參照錯亂
-    dotSeq += 1;
-    dot.innerHTML = currentDotSvg.replace(/filter0_d_18570_652/g, `dotshadow_${dotSeq}`);
-  }
-  el.appendChild(dot);
-
-  const date = document.createElement('div');
-  date.className = 'node-date';
-  date.textContent = node.date;
-  el.appendChild(date);
-
-  const content = document.createElement('div');
-  content.className = 'node-content';
-  // 以 \n\n 分段，段落間距改由 CSS 控制（避免原文空行造成過大間距）；
-  // 文字不更動，段內單一換行與空白仍由 white-space: pre-wrap 原樣保留
-  String(node.content)
-    .split(/\n\n+/)
-    .forEach((para) => {
-      const p = document.createElement('p');
-      p.className = 'para';
-      p.textContent = para;
-      content.appendChild(p);
-    });
-  el.appendChild(content);
-
-  item.appendChild(el);
+  item.appendChild(template.renderNode(node));
   return item;
 }
 
 /**
  * 渲染單一卡片（頁首 + 內容區 + 連線 + 多個節點）。
- * @param {Array<{date: string, content: string}>} nodes
+ * 節點內部結構由 template.renderNode 產生；頁首、年代徽章、連線、頁尾為各版型共用框架。
+ * @param {Array<object>} nodes
+ * @param {boolean} single - 是否為不切分（單張長圖）模式
+ * @param {{renderNode: (node: object) => HTMLElement}} template - 目前版型模組
  * @returns {HTMLElement}
  */
-function renderCard(nodes, single) {
+function renderCard(nodes, single, template) {
   const card = document.createElement('div');
   card.className = single ? 'card card--single' : 'card';
 
@@ -147,8 +135,8 @@ function renderCard(nodes, single) {
   line.className = 'timeline-line';
   timeline.appendChild(line);
 
-  // 節點（年代徽章已內含於 renderNode，於各年代起點顯示）
-  nodes.forEach((node) => timeline.appendChild(renderNode(node)));
+  // 節點（年代徽章由 renderItem 於各年代起點插入；節點內部由版型 renderNode 產生）
+  nodes.forEach((node) => timeline.appendChild(renderItem(node, template)));
   body.appendChild(timeline);
   card.appendChild(body);
 
@@ -176,9 +164,11 @@ function renderCard(nodes, single) {
 
 /**
  * 接收二維節點陣列，為每張卡片產生一個 .card DOM 元素。
- * @param {Array<Array<{date: string, content: string}>>} pagedNodes
+ * @param {Array<Array<object>>} pagedNodes
+ * @param {{single?: boolean, template: {renderNode: (node: object) => HTMLElement}}} options
+ *   options.template 為目前版型模組（必填）；options.single 為不切分模式
  * @returns {HTMLElement[]} 卡片 DOM 元素陣列
  */
 export function renderCards(pagedNodes, options = {}) {
-  return pagedNodes.map((nodes) => renderCard(nodes, options.single));
+  return pagedNodes.map((nodes) => renderCard(nodes, options.single, options.template));
 }

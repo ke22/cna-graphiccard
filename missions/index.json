@@ -4,5 +4,12 @@
     "sheet": "https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/gviz/tq?tqx=out:csv&gid=0",
     "source": "",
     "updated": "2026/06/15"
+  },
+  "2026_柯文哲案大事記": {
+    "csv": "柯文哲案大事記 - 工作表1.csv",
+    "sheet": "https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/gviz/tq?tqx=out:csv&gid=751022733",
+    "source": "中央社",
+    "updated": "2026/03/26",
+    "template": "headline"
   }
 }
