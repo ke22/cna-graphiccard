@@ -43,9 +43,9 @@
 ## 7. 驗證
 
 - [x] 7.1 以公開試算表 ID `1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8` 連結，確認下拉選單列出其分頁名稱。
-- [ ] 7.2 選分頁開啟後，確認模板顯示之時間軸與直接用該 gid 的 `?sheet=` 網址結果一致。
-- [ ] 7.3 重整 dashboard 確認網址自動帶入；貼入格式錯誤網址與非公開試算表，確認顯示對應錯誤訊息且 console 無未捕捉例外。
-- [ ] 7.4 在模板工具列切換分頁，確認 URL 與卡片內容切換至對應 gid。
-- [ ] 7.5 確認預覽卡片完整顯示於目前 viewport，匯出圖仍為原始卡片尺寸。
+- [x] 7.2 選分頁開啟後，確認模板顯示之時間軸與直接用該 gid 的 `?sheet=` 網址結果一致。
+- [x] 7.3 重整 dashboard 確認網址自動帶入；貼入格式錯誤網址與非公開試算表，確認顯示對應錯誤訊息且 console 無未捕捉例外。
+- [x] 7.4 在模板工具列切換分頁，確認 URL 與卡片內容切換至對應 gid。
+- [x] 7.5 確認預覽卡片完整顯示於目前 viewport，匯出圖仍為原始卡片尺寸。
 - [x] 7.6 在 dashboard 選「版型二：標題時間軸」開啟分頁，確認 URL 含 `template=headline` 且模板頁渲染 `.node--headline`。
-- [ ] 7.7 在模板頁 toolbar 切換版型，確認 URL 保留目前 sheet/page/title 與 split，且 DOM 在 `.node--headline` 與版型一節點間切換。
+- [x] 7.7 在模板頁 toolbar 切換版型，確認 URL 保留目前 sheet/page/title 與 split，且 DOM 在 `.node--headline` 與版型一節點間切換。

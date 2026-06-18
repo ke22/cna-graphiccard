@@ -17,6 +17,13 @@
       <h1 class="dash-heading">選擇圖卡</h1>
       <p class="dash-hint">貼上 Google 試算表網址，從分頁清單挑選一張圖卡開啟。</p>
 
+      <label class="dash-label" for="sheet-select">選擇試算表</label>
+      <div class="dash-row">
+        <select id="sheet-select" class="dash-select">
+          <option value="">自訂網址…</option>
+        </select>
+      </div>
+
       <label class="dash-label" for="sheet-url">試算表網址</label>
       <div class="dash-row">
         <input
@@ -38,6 +45,7 @@
         <select id="template-select" class="dash-select dash-select-template" aria-label="選擇版型">
           <option value="timeline">版型一：時間軸</option>
           <option value="headline">版型二：標題時間軸</option>
+          <option value="template3">版型三：時間小標</option>
         </select>
         <button id="btn-open" class="dash-btn dash-btn-primary" type="button" disabled>開啟</button>
       </div>

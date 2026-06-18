@@ -112,6 +112,20 @@ async function resolveEntry(missionName) {
 }
 
 /**
+ * 回傳 manifest 內所有任務名稱（依檔案順序）；失敗時回傳空陣列。
+ * @returns {Promise<string[]>}
+ */
+export async function loadMissionNames() {
+  try {
+    const res = await fetch('missions/index.json');
+    if (!res.ok) throw new Error('manifest fetch failed');
+    return Object.keys(await res.json());
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
  * 載入指定任務的中繼資料（資料來源、更新日期、版型）。
  * @param {string} missionName
  * @returns {Promise<{source: string, updated: string, template: string|undefined}>} 失敗時回傳空字串

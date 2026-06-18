@@ -1,7 +1,7 @@
 // 主流程：讀取 URL mission 參數 → 載入 → 斷頁 → 渲染 → 掛載
 // 並初始化工具列與匯出功能。
 
-import { loadRecords, loadMeta } from './csv-loader.js';
+import { loadRecords, loadMeta, loadMissionNames } from './csv-loader.js';
 import { paginate } from './paginator.js';
 import { renderCards, setMission, setLogo, setDot, setMeta } from './renderer.js';
 import { getTemplate } from './templates/registry.js';
@@ -9,6 +9,7 @@ import { setupExport } from './exporter.js';
 import {
   buildTemplateUrl,
   fetchSpreadsheetTabs,
+  loadSpreadsheets,
   parseSheetId,
   parseSpreadsheetId,
 } from './sheets-api.js';
@@ -100,6 +101,14 @@ async function main() {
   setupPreviewScale();
 
   if (!mission && !sheetOverride) {
+    // 未指定任務時自動載入預設任務（manifest 第一筆），並更新網址讓工具列切換維持有效
+    const names = await loadMissionNames();
+    if (names.length > 0) {
+      const nextParams = new URLSearchParams(window.location.search);
+      nextParams.set('mission', names[0]);
+      window.location.replace(`index.html?${nextParams.toString()}`);
+      return;
+    }
     showError('無法載入資料：未指定任務（請使用 ?mission=任務名稱）');
     return;
   }
@@ -247,6 +256,8 @@ async function setupMissionSwitch(sheetOverride) {
 
   if (!missionSelect || !spreadsheetId) return;
 
+  setupSheetSwitch(spreadsheetId, params);
+
   missionSelect.hidden = false;
   missionSelect.disabled = true;
 
@@ -279,6 +290,50 @@ async function setupMissionSwitch(sheetOverride) {
         split: params.get('split') || '',
       }
     );
+  });
+}
+
+// 工具列「切換試算表」：以 spreadsheets.json 列出多份試算表，切換時導向新試算表第一個分頁。
+async function setupSheetSwitch(spreadsheetId, params) {
+  const sheetSelect = document.getElementById('sheet-select');
+  if (!sheetSelect) return;
+
+  let sheets;
+  try {
+    sheets = await loadSpreadsheets();
+  } catch (err) {
+    return;
+  }
+  // 目前試算表不在清單時補入，確保預選有對應項目
+  if (!sheets.some((s) => s.id === spreadsheetId)) {
+    sheets = [{ name: '目前試算表', url: '', id: spreadsheetId }, ...sheets];
+  }
+
+  sheetSelect.innerHTML = '';
+  sheets.forEach(({ name, id }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name || id;
+    sheetSelect.appendChild(option);
+  });
+  sheetSelect.value = spreadsheetId;
+  sheetSelect.hidden = false;
+
+  sheetSelect.addEventListener('change', async () => {
+    const nextId = sheetSelect.value;
+    if (!nextId || nextId === spreadsheetId) return;
+    sheetSelect.disabled = true;
+    try {
+      const tabs = await fetchSpreadsheetTabs(nextId);
+      const first = tabs[0];
+      window.location.href = buildTemplateUrl(nextId, first.sheetId, first.title || '', {
+        template: params.get('template') || '',
+        split: params.get('split') || '',
+      });
+    } catch (err) {
+      sheetSelect.value = spreadsheetId;
+      sheetSelect.disabled = false;
+    }
   });
 }
 

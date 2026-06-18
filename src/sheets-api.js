@@ -6,6 +6,26 @@ export const PLACEHOLDER_API_KEY = 'AIzaSyDUMMY_REPLACE_WITH_RESTRICTED_SHEETS_K
 export const DEFAULT_SPREADSHEET_URL =
   'https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/edit?gid=0#gid=0';
 
+/**
+ * 載入可選試算表清單（spreadsheets.json）；每筆附帶解析後的 spreadsheet id。
+ * 失敗或清單為空時退回內建預設試算表。
+ * @returns {Promise<Array<{name: string, url: string, id: string}>>}
+ */
+export async function loadSpreadsheets() {
+  try {
+    const res = await fetch('spreadsheets.json');
+    if (!res.ok) throw new Error('list fetch failed');
+    const list = await res.json();
+    const entries = (Array.isArray(list) ? list : [])
+      .map((e) => ({ name: e.name || '', url: e.url || '', id: parseSpreadsheetId(e.url || '') }))
+      .filter((e) => e.id);
+    if (entries.length) return entries;
+  } catch (e) {
+    // 退回內建預設
+  }
+  return [{ name: '預設試算表', url: DEFAULT_SPREADSHEET_URL, id: parseSpreadsheetId(DEFAULT_SPREADSHEET_URL) }];
+}
+
 export function parseSpreadsheetId(url) {
   const match = String(url || '').match(/\/spreadsheets\/d\/([^/?#]+)/);
   return match ? match[1] : '';
