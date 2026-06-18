@@ -1,0 +1,84 @@
+/* 版型三 · 時間小標：日期欄 + 圓點 + 時刻同列，適合密集即時事件。 */
+
+/* 版型三節點：取消預設左側圓點留白，改由表頭橫列自行排版 */
+.node.node--template3 {
+  /* 日期欄固定寬度，使各列圓點對齊成一直線 */
+  --date-col-width: 150px;
+  --date-gap: 14px;
+  padding-left: 0;
+}
+
+/* 表頭橫列：日期欄、圓點、時刻列同列，文字以基線對齊 */
+.node--template3 .node-header {
+  display: flex;
+  align-items: baseline;
+  column-gap: var(--date-gap);
+}
+
+/* 日期欄：固定寬度、向圓點靠右；同日重複時留白仍占欄寬 */
+.node--template3 .node-date-part {
+  flex: 0 0 var(--date-col-width);
+  text-align: right;
+  color: var(--color-text-year);
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1.15;
+}
+
+/* 圓點改為行內排版（覆寫框架的絕對定位），垂直置中於表頭列 */
+.node--template3 .node-dot {
+  position: static;
+  flex: 0 0 32px;
+  align-self: center;
+}
+
+/* 時刻列容器：填滿圓點右側剩餘空間 */
+.node--template3 .node-time-split {
+  flex: 1 1 auto;
+  color: var(--color-text-year);
+  line-height: 1.15;
+}
+
+.node--template3 .node-clock-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.node--template3 .node-clock-part {
+  color: var(--color-header);
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.node--template3 .node-time-suffix {
+  color: var(--color-text-year);
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* 小標／內文：縮排對齊至時刻欄（日期欄 + 圓點 + 兩段間距之後） */
+.node--template3 .node-subhead {
+  margin-top: 8px;
+  margin-left: calc(var(--date-col-width) + var(--date-gap) + 32px + var(--date-gap));
+  color: var(--color-text-content);
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1.35;
+}
+
+.node--template3 .node-content {
+  margin-top: 8px;
+  margin-left: calc(var(--date-col-width) + var(--date-gap) + 32px + var(--date-gap));
+  color: var(--color-text-content);
+  font-size: 27px;
+  font-weight: normal;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* 版型三的時間軸連線改走日期欄之後的圓點位置（圓點中心 = 150 + 14 + 16 = 180px） */
+.timeline--template3 .timeline-line {
+  left: 178px;
+}

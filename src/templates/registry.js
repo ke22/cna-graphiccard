@@ -3,10 +3,12 @@
 
 import timeline from './timeline.js';
 import headline from './headline.js';
+import template3 from './template3.js';
 
 const TEMPLATES = {
   [timeline.id]: timeline,
   [headline.id]: headline,
+  [template3.id]: template3,
 };
 
 export const DEFAULT_TEMPLATE_ID = 'timeline';

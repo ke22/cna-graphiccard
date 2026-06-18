@@ -128,8 +128,12 @@ function renderCard(nodes, single, template) {
   body.className = 'card-body';
 
   // 時間軸容器：包住連線與節點，讓內容可在 body 內垂直置中（連線跟著內容、不突出）
+  // 附帶目前版型 id 類別（timeline--<id>），供各版型 CSS 調整連線／圓點位置（不影響其他版型）
   const timeline = document.createElement('div');
   timeline.className = 'timeline';
+  if (template && template.id) {
+    timeline.classList.add(`timeline--${template.id}`);
+  }
 
   const line = document.createElement('div');
   line.className = 'timeline-line';
