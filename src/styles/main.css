@@ -63,6 +63,7 @@ body {
   min-width: 0;
 }
 
+.toolbar-select,
 .mission-select {
   width: min(320px, 28vw);
   height: 38px;
@@ -75,10 +76,16 @@ body {
   font-size: 15px;
 }
 
+.template-select {
+  width: min(220px, 20vw);
+}
+
+.toolbar-select:disabled,
 .mission-select:disabled {
   opacity: 0.55;
 }
 
+.toolbar-select option,
 .mission-select option {
   color: #12141a;
 }
@@ -204,6 +211,10 @@ body.is-exporting .card-preview > .card {
 
   .mission-select {
     width: min(100%, 260px);
+  }
+
+  .template-select {
+    width: min(100%, 220px);
   }
 
   .app {

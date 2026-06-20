@@ -7,13 +7,23 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="stylesheet" href="src/styles/main.css">
   <link rel="stylesheet" href="src/styles/timeline.css">
+  <link rel="stylesheet" href="src/styles/headline.css">
+  <link rel="stylesheet" href="src/styles/template3.css">
 </head>
 <body>
   <div id="toolbar" class="toolbar">
     <span id="mission-title" class="toolbar-title"></span>
     <div class="toolbar-actions">
+      <select id="sheet-select" class="mission-select sheet-select" aria-label="切換試算表" hidden>
+        <option value="">切換試算表</option>
+      </select>
       <select id="mission-select" class="mission-select" aria-label="切換分頁" hidden>
         <option value="">切換分頁</option>
+      </select>
+      <select id="template-select" class="toolbar-select template-select" aria-label="切換版型">
+        <option value="timeline">版型一：時間軸</option>
+        <option value="headline">版型二：標題時間軸</option>
+        <option value="template3">版型三：時間小標</option>
       </select>
       <div class="mode-toggle">
         <button id="btn-mode-split" class="mode-btn">切分</button>

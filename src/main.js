@@ -1,13 +1,15 @@
 // 主流程：讀取 URL mission 參數 → 載入 → 斷頁 → 渲染 → 掛載
 // 並初始化工具列與匯出功能。
 
-import { loadNodes, loadMeta } from './csv-loader.js';
+import { loadRecords, loadMeta, loadMissionNames } from './csv-loader.js';
 import { paginate } from './paginator.js';
 import { renderCards, setMission, setLogo, setDot, setMeta } from './renderer.js';
+import { getTemplate } from './templates/registry.js';
 import { setupExport } from './exporter.js';
 import {
   buildTemplateUrl,
   fetchSpreadsheetTabs,
+  loadSpreadsheets,
   parseSheetId,
   parseSpreadsheetId,
 } from './sheets-api.js';
@@ -69,6 +71,18 @@ function showError(message) {
   app.appendChild(el);
 }
 
+function updateQuery(nextValues) {
+  const params = new URLSearchParams(window.location.search);
+  Object.entries(nextValues).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      params.delete(key);
+    } else {
+      params.set(key, String(value));
+    }
+  });
+  window.location.href = `index.html?${params.toString()}`;
+}
+
 async function main() {
   const params = new URLSearchParams(window.location.search);
   const mission = params.get('mission') || '';
@@ -87,6 +101,14 @@ async function main() {
   setupPreviewScale();
 
   if (!mission && !sheetOverride) {
+    // 未指定任務時自動載入預設任務（manifest 第一筆），並更新網址讓工具列切換維持有效
+    const names = await loadMissionNames();
+    if (names.length > 0) {
+      const nextParams = new URLSearchParams(window.location.search);
+      nextParams.set('mission', names[0]);
+      window.location.replace(`index.html?${nextParams.toString()}`);
+      return;
+    }
     showError('無法載入資料：未指定任務（請使用 ?mission=任務名稱）');
     return;
   }
@@ -95,21 +117,30 @@ async function main() {
   const btnSplit = document.getElementById('btn-mode-split');
   const btnSingle = document.getElementById('btn-mode-single');
   const refreshBtn = document.getElementById('btn-refresh');
+  const templateSelect = document.getElementById('template-select');
 
-  // 當前狀態：載入後的節點與斷頁可用高度，供模式切換／重繪使用
+  // 當前狀態：載入後的節點、斷頁可用高度與所選版型，供模式切換／重繪使用
   let currentNodes = [];
   let currentMaxHeight = CARD_HEIGHT - HEADER_HEIGHT - BODY_PADDING;
   let currentMode = params.get('split') === '0' ? 'single' : 'split';
+  let currentTemplate = getTemplate(); // 預設版型，loadAndRender 會依任務設定覆寫
+
+  if (templateSelect) {
+    templateSelect.value = params.get('template') || 'timeline';
+    templateSelect.addEventListener('change', () => {
+      updateQuery({ template: templateSelect.value });
+    });
+  }
 
   // 兩款輸出：'split'（切分多張 1200×1200）/ 'single'（不切分，單張長圖）
-  // 年代徽章高度已內含於各節點的量測高度（renderNode 會渲染徽章），故斷頁無須額外保留。
+  // 年代徽章高度已內含於各節點的量測高度（renderItem 會渲染徽章），故斷頁無須額外保留。
   async function render(mode) {
     let cards;
     if (mode === 'single') {
-      cards = renderCards([currentNodes], { single: true });
+      cards = renderCards([currentNodes], { single: true, template: currentTemplate });
     } else {
-      const paged = await paginate(currentNodes, currentMaxHeight);
-      cards = renderCards(paged);
+      const paged = await paginate(currentNodes, currentMaxHeight, 0, currentTemplate);
+      cards = renderCards(paged, { template: currentTemplate });
     }
     app.innerHTML = '';
     cards.forEach((card) => {
@@ -126,28 +157,37 @@ async function main() {
     currentMode = mode;
     btnSplit.classList.toggle('active', mode === 'split');
     btnSingle.classList.toggle('active', mode === 'single');
+    const nextUrl = new URL(window.location.href);
+    if (mode === 'single') {
+      nextUrl.searchParams.set('split', '0');
+    } else {
+      nextUrl.searchParams.delete('split');
+    }
+    window.history.replaceState(null, '', nextUrl);
     return render(mode);
   }
 
   // 載入（或重新載入）資料並重繪，沿用目前的切分模式
   async function loadAndRender() {
-    const baseMeta = mission ? await loadMeta(mission) : { source: '', updated: '' }; // manifest 的資料來源/更新時間
+    const baseMeta = mission
+      ? await loadMeta(mission)
+      : { source: '', updated: '', template: undefined }; // manifest 的資料來源/更新時間/版型
     // 資料來源：URL ?sheet= 可覆寫為 Google Sheet 公開 CSV 網址（loader 已加 cache-bust）
-    const { nodes, sheetMeta } = await loadNodes(mission, sheetOverride || undefined);
+    const { records, sheetMeta } = await loadRecords(mission, sheetOverride || undefined);
 
-    // 標題：URL ?title= > sheet 標題欄 > 任務名稱
-    const title = params.get('title') || sheetMeta.title || mission || 'CNA 時間軸圖卡';
+    // 版型優先序：URL ?template= > manifest template 欄 > 預設 timeline（未知 id 由 registry 退回）
+    currentTemplate = getTemplate(params.get('template') || baseMeta.template || undefined);
+    if (templateSelect) templateSelect.value = currentTemplate.id;
+
+    // 標題：sheet/CSV 的「標題」欄 > URL ?title=（分頁名 fallback）> 任務名稱
+    const title = sheetMeta.title || params.get('title') || mission || 'CNA 時間軸圖卡';
     titleEl.textContent = title;
     setMission(title);
 
-    // 年代徽章：年代欄已向下填充；無年代時退回任務名稱中的 4 位數字。
-    // 當某節點年代與前一節點不同時標記 badge=true → 該節點上方插入年代徽章（跨年分段）。
+    // 逐列映射為節點交由所選版型：年代向下填充、跨年標 badge（無年代時退回任務名稱中的 4 位數字）。
     const missionYear = (mission.match(/(\d{4})/) || [])[1] || '';
-    let prevYear = null;
-    nodes.forEach((n) => {
-      n.year = n.year || sheetMeta.year || missionYear;
-      n.badge = Boolean(n.year) && n.year !== prevYear;
-      prevYear = n.year;
+    const nodes = currentTemplate.buildNodes(records, {
+      fallbackYear: sheetMeta.year || missionYear,
     });
 
     // 資料來源／更新時間：URL 參數 > sheet 欄位 > manifest（空字串欄位會被隱藏）
@@ -209,11 +249,14 @@ async function main() {
 }
 
 async function setupMissionSwitch(sheetOverride) {
+  const params = new URLSearchParams(window.location.search);
   const spreadsheetId = parseSpreadsheetId(sheetOverride);
   const currentSheetId = parseSheetId(sheetOverride);
   const missionSelect = document.getElementById('mission-select');
 
   if (!missionSelect || !spreadsheetId) return;
+
+  setupSheetSwitch(spreadsheetId, params);
 
   missionSelect.hidden = false;
   missionSelect.disabled = true;
@@ -241,8 +284,56 @@ async function setupMissionSwitch(sheetOverride) {
     window.location.href = buildTemplateUrl(
       spreadsheetId,
       selected.value,
-      selected.dataset.title || selected.textContent || ''
+      selected.dataset.title || selected.textContent || '',
+      {
+        template: params.get('template') || '',
+        split: params.get('split') || '',
+      }
     );
+  });
+}
+
+// 工具列「切換試算表」：以 spreadsheets.json 列出多份試算表，切換時導向新試算表第一個分頁。
+async function setupSheetSwitch(spreadsheetId, params) {
+  const sheetSelect = document.getElementById('sheet-select');
+  if (!sheetSelect) return;
+
+  let sheets;
+  try {
+    sheets = await loadSpreadsheets();
+  } catch (err) {
+    return;
+  }
+  // 目前試算表不在清單時補入，確保預選有對應項目
+  if (!sheets.some((s) => s.id === spreadsheetId)) {
+    sheets = [{ name: '目前試算表', url: '', id: spreadsheetId }, ...sheets];
+  }
+
+  sheetSelect.innerHTML = '';
+  sheets.forEach(({ name, id }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name || id;
+    sheetSelect.appendChild(option);
+  });
+  sheetSelect.value = spreadsheetId;
+  sheetSelect.hidden = false;
+
+  sheetSelect.addEventListener('change', async () => {
+    const nextId = sheetSelect.value;
+    if (!nextId || nextId === spreadsheetId) return;
+    sheetSelect.disabled = true;
+    try {
+      const tabs = await fetchSpreadsheetTabs(nextId);
+      const first = tabs[0];
+      window.location.href = buildTemplateUrl(nextId, first.sheetId, first.title || '', {
+        template: params.get('template') || '',
+        split: params.get('split') || '',
+      });
+    } catch (err) {
+      sheetSelect.value = spreadsheetId;
+      sheetSelect.disabled = false;
+    }
   });
 }
 

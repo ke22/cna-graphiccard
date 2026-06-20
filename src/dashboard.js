@@ -2,14 +2,17 @@ import {
   DEFAULT_SPREADSHEET_URL,
   buildTemplateUrl,
   fetchSpreadsheetTabs,
+  loadSpreadsheets,
   parseSpreadsheetId,
 } from './sheets-api.js';
 
 const STORAGE_KEY = 'cna-dashboard-sheet-url';
 
 const sheetUrlInput = document.getElementById('sheet-url');
+const sheetSelect = document.getElementById('sheet-select');
 const connectBtn = document.getElementById('btn-connect');
 const tabSelect = document.getElementById('tab-select');
+const templateSelect = document.getElementById('template-select');
 const openBtn = document.getElementById('btn-open');
 const statusEl = document.getElementById('dash-status');
 
@@ -87,10 +90,39 @@ function openSelectedTab() {
   const target = buildTemplateUrl(
     currentSpreadsheetId,
     selected.value,
-    selected.dataset.title || selected.textContent || ''
+    selected.dataset.title || selected.textContent || '',
+    { template: templateSelect ? templateSelect.value : '' }
   );
   window.location.href = target;
 }
+
+// 以 spreadsheets.json 填入試算表下拉選單；並依目前網址預選對應項目。
+async function populateSheetSelect(currentUrl) {
+  const sheets = await loadSpreadsheets();
+  sheetSelect.innerHTML = '';
+  const custom = document.createElement('option');
+  custom.value = '';
+  custom.textContent = '自訂網址…';
+  sheetSelect.appendChild(custom);
+  sheets.forEach(({ name, url, id }) => {
+    const option = document.createElement('option');
+    option.value = url;
+    option.textContent = name || id;
+    option.dataset.id = id;
+    sheetSelect.appendChild(option);
+  });
+  // 依目前網址的 spreadsheet id 預選（找不到時維持「自訂網址…」）
+  const currentId = parseSpreadsheetId(currentUrl);
+  const match = sheets.find((s) => s.id === currentId);
+  sheetSelect.value = match ? match.url : '';
+}
+
+sheetSelect.addEventListener('change', () => {
+  const url = sheetSelect.value;
+  if (!url) return; // 「自訂網址…」：交由使用者自行輸入
+  sheetUrlInput.value = url;
+  connectSpreadsheet();
+});
 
 connectBtn.addEventListener('click', () => {
   connectSpreadsheet();
@@ -111,6 +143,14 @@ openBtn.addEventListener('click', openSelectedTab);
 
 resetTabs();
 
-const storedUrl = localStorage.getItem(STORAGE_KEY);
-sheetUrlInput.value = storedUrl || DEFAULT_SPREADSHEET_URL;
-connectSpreadsheet();
+// 初始：記憶網址 > spreadsheets.json 第一筆 > 內建預設；填入試算表選單後自動連結列分頁。
+async function init() {
+  const sheets = await loadSpreadsheets();
+  const storedUrl = localStorage.getItem(STORAGE_KEY);
+  const initialUrl = storedUrl || (sheets[0] && sheets[0].url) || DEFAULT_SPREADSHEET_URL;
+  sheetUrlInput.value = initialUrl;
+  await populateSheetSelect(initialUrl);
+  connectSpreadsheet();
+}
+
+init();

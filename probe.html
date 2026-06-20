@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>probe</title></head>
+<body>
+<iframe id="f" style="width:1300px;height:1400px;border:0"></iframe>
+<pre id="out">pending</pre>
+<script>
+  const params = new URLSearchParams(location.search);
+  const mission = params.get('m');
+  const f = document.getElementById('f');
+  params.delete('m');
+  params.set('mission', mission);
+  f.src = 'index.html?' + params.toString();
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  f.addEventListener('load', () => {
+    setTimeout(async () => {
+      const doc = f.contentDocument;
+      for (let i = 0; i < 20 && doc.querySelectorAll('.card').length === 0; i++) {
+        await wait(500);
+      }
+      const cards = [...doc.querySelectorAll('.card')];
+      const res = cards.map((card) => ({
+        w: card.offsetWidth,
+        h: card.offsetHeight,
+        scrollH: card.scrollHeight,
+        clientH: card.clientHeight,
+        overflow: card.scrollHeight > card.clientHeight + 1,
+      }));
+      const payload = { count: cards.length, anyOverflow: res.some((r) => r.overflow), cards: res };
+      if (params.get('export') === '1') {
+        const win = f.contentWindow;
+        let rendered = 0;
+        let downloaded = 0;
+        win.html2canvas = async (card, options) => {
+          rendered += 1;
+          const canvas = doc.createElement('canvas');
+          canvas.width = Math.round(card.offsetWidth * (options?.scale || 1));
+          canvas.height = Math.round(card.offsetHeight * (options?.scale || 1));
+          canvas.toDataURL = () => 'data:image/png;base64,probe';
+          return canvas;
+        };
+        const originalClick = win.HTMLAnchorElement.prototype.click;
+        win.HTMLAnchorElement.prototype.click = function () {
+          downloaded += this.download ? 1 : 0;
+        };
+        win.eval("import('./src/exporter.js')")
+          .then((mod) => mod.exportCards(doc.getElementById('btn-export')))
+          .then(() => {
+            win.HTMLAnchorElement.prototype.click = originalClick;
+            payload.export = { rendered, downloaded };
+            document.getElementById('out').textContent = JSON.stringify(payload);
+          });
+        return;
+      }
+      document.getElementById('out').textContent = JSON.stringify(payload);
+    }, 4000);
+  });
+</script>
+</body></html>

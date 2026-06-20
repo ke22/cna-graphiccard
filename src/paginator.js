@@ -1,7 +1,7 @@
 // 智慧斷頁模組
 // 透過運行時 DOM 高度測量，將節點分組為多張卡片，且節點不被切割。
 
-import { renderNode } from './renderer.js';
+import { renderItem } from './renderer.js';
 
 const MEASURE_CONTAINER_ID = 'measure-container';
 // 卡片內容區寬度 = 卡片寬 1200 - card-body 左右內距各 60 = 1080
@@ -34,12 +34,13 @@ function getMeasureContainer() {
  * 節點完整不切割：累積高度 + 節點高度 > maxHeight 時，整個節點移至下一張卡片。
  * 單一節點超過 maxHeight 時強制獨立成卡並輸出警告（避免無限遞迴）。
  *
- * @param {Array<{date: string, content: string}>} nodes
+ * @param {Array<object>} nodes
  * @param {number} [maxHeight=888] - 每張卡片可用內容高度
  * @param {number} [firstCardReserve=0] - 第一張卡片額外保留高度（西元年徽章用）
- * @returns {Promise<Array<Array<{date: string, content: string}>>>}
+ * @param {{renderNode: (node: object) => HTMLElement}} template - 目前版型模組（量測節點高度用）
+ * @returns {Promise<Array<Array<object>>>}
  */
-export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0) {
+export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0, template) {
   if (!nodes || nodes.length === 0) return [];
 
   // 確保字型載入後再量測，避免行高不準
@@ -52,7 +53,7 @@ export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0) {
 
   // 量測每個節點的實際高度
   const heights = nodes.map((node, i) => {
-    const nodeEl = renderNode(node);
+    const nodeEl = renderItem(node, template);
     container.appendChild(nodeEl);
     const h = nodeEl.getBoundingClientRect().height;
     container.removeChild(nodeEl);
