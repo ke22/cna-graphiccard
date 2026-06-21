@@ -1,0 +1,236 @@
+/* 教學頁版面：所有選擇器 scope 在 .tutorial-page 之下。 */
+
+.tutorial-page {
+  background: var(--color-bg, #F7F7F7);
+  color: var(--color-text-content, #12141A);
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  scroll-behavior: smooth;
+  min-height: 100vh;
+}
+
+/* 側欄 + 主內容 flex 容器 */
+.tutorial-page .tutorial-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  padding: 32px 0 32px;
+  z-index: 100;
+}
+
+.tutorial-page .tutorial-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tutorial-page .tutorial-nav li + li {
+  margin-top: 2px;
+}
+
+.tutorial-page .tutorial-nav a {
+  display: block;
+  padding: 10px 20px;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tutorial-page .tutorial-nav a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tutorial-page .tutorial-nav a.active {
+  color: #fff;
+  border-left-color: var(--color-header, #004E98);
+  background: rgba(0, 78, 152, 0.25);
+  font-weight: bold;
+}
+
+/* 主內容區：讓出側欄寬度 */
+.tutorial-page .tutorial-main {
+  margin-left: 220px;
+  max-width: 820px;
+  padding: 48px 48px 80px;
+}
+
+/* 標題區 */
+.tutorial-page .tutorial-header {
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--color-header, #004E98);
+}
+
+.tutorial-page .tutorial-header h1 {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--color-header, #004E98);
+  margin: 0 0 8px;
+}
+
+.tutorial-page .tutorial-header p {
+  font-size: 17px;
+  color: var(--color-text-year, #1F2933);
+  margin: 0;
+}
+
+/* 章節 */
+.tutorial-page .tutorial-section {
+  margin-bottom: 64px;
+  padding-top: 16px;
+}
+
+.tutorial-page .tutorial-section h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--color-header, #004E98);
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tutorial-page .tutorial-section h3 {
+  font-size: 17px;
+  font-weight: bold;
+  color: var(--color-text-year, #1F2933);
+  margin: 24px 0 10px;
+}
+
+.tutorial-page .tutorial-section p,
+.tutorial-page .tutorial-section li {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-text-content, #12141A);
+}
+
+.tutorial-page .tutorial-section ul,
+.tutorial-page .tutorial-section ol {
+  padding-left: 24px;
+  margin: 10px 0 16px;
+}
+
+.tutorial-page .tutorial-section li {
+  margin-bottom: 6px;
+}
+
+/* 程式碼區塊 */
+.tutorial-page .tutorial-code {
+  background: #1a1a2e;
+  color: #e8eaf6;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+  font-family: "Menlo", "Consolas", "Monaco", monospace;
+  margin: 12px 0 16px;
+}
+
+.tutorial-page code {
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 14px;
+  font-family: "Menlo", "Consolas", "Monaco", monospace;
+}
+
+.tutorial-page .tutorial-code code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* 提示方塊 */
+.tutorial-page .tutorial-note {
+  background: #fff8e1;
+  border-left: 4px solid #f9a825;
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 12px 0;
+  color: var(--color-text-content, #12141A);
+}
+
+/* CSV 範例表格 */
+.tutorial-page .tutorial-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0 16px;
+}
+
+.tutorial-page .tutorial-table {
+  border-collapse: collapse;
+  min-width: 560px;
+  font-size: 14px;
+}
+
+.tutorial-page .tutorial-table th,
+.tutorial-page .tutorial-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.tutorial-page .tutorial-table th {
+  background: var(--color-header, #004E98);
+  color: #fff;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.tutorial-page .tutorial-table td {
+  background: #fff;
+  color: var(--color-text-content, #12141A);
+}
+
+.tutorial-page .tutorial-table tr:hover td {
+  background: #f5f8ff;
+}
+
+/* 窄螢幕：側欄折到上方 */
+@media (max-width: 900px) {
+  .tutorial-page .tutorial-nav {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 12px 0 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  .tutorial-page .tutorial-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 16px;
+  }
+
+  .tutorial-page .tutorial-nav a {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  .tutorial-page .tutorial-nav a.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--color-header, #004E98);
+    background: rgba(0, 78, 152, 0.15);
+  }
+
+  .tutorial-page .tutorial-main {
+    margin-left: 0;
+    padding: 24px 20px 60px;
+  }
+}

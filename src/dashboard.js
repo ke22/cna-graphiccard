@@ -3,6 +3,7 @@ import {
   buildTemplateUrl,
   fetchSpreadsheetTabs,
   loadSpreadsheets,
+  parseSheetId,
   parseSpreadsheetId,
 } from './sheets-api.js';
 
@@ -43,6 +44,12 @@ function populateTabs(tabs) {
     option.dataset.title = title;
     tabSelect.appendChild(option);
   });
+  // Pre-select the tab matching the gid in the current URL input
+  const urlGid = parseSheetId(sheetUrlInput.value);
+  if (urlGid) {
+    const match = [...tabSelect.options].find((o) => o.value === urlGid);
+    if (match) tabSelect.value = urlGid;
+  }
   tabSelect.disabled = false;
   openBtn.disabled = tabSelect.value === '';
 }

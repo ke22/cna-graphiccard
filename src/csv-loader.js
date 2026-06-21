@@ -201,7 +201,7 @@ export async function loadRecords(missionName, sheetUrlOverride) {
     return '';
   };
   const sheetMeta = {
-    year: metaFrom('年代', '年'),
+    year: metaFrom('年代', '年', '西元'),
     title: metaFrom('標題', '主題', 'title'),
     source: metaFrom('資料來源', '來源', 'source'),
     updated: metaFrom('更新時間', '更新日期', 'updated'),

@@ -140,7 +140,14 @@ function renderCard(nodes, single, template) {
   timeline.appendChild(line);
 
   // 節點（年代徽章由 renderItem 於各年代起點插入；節點內部由版型 renderNode 產生）
-  nodes.forEach((node) => timeline.appendChild(renderItem(node, template)));
+  nodes.forEach((node, index) => {
+    // 防禦性處理：即使呼叫端未經 paginate，Template3 卡片首節點仍需顯示日期。
+    const renderedNode =
+      template && template.id === 'template3' && index === 0
+        ? { ...node, forceDate: true }
+        : node;
+    timeline.appendChild(renderItem(renderedNode, template));
+  });
   body.appendChild(timeline);
   card.appendChild(body);
 

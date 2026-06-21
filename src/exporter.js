@@ -1,24 +1,24 @@
-// PNG 匯出模組
+// JPG 匯出模組
 // 依序對每張 .card 呼叫 html2canvas，以 2x scale 截圖並觸發下載。
 
 const DEFAULT_LABEL = '匯出所有卡片';
 
 /**
- * 觸發單一 canvas 的 PNG 下載。
+ * 觸發單一 canvas 的 JPG 下載。
  * @param {HTMLCanvasElement} canvas
  * @param {string} filename
  */
 function downloadCanvas(canvas, filename) {
   const a = document.createElement('a');
   a.download = filename;
-  a.href = canvas.toDataURL('image/png');
+  a.href = canvas.toDataURL('image/jpeg');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
 
 /**
- * 依序匯出頁面上所有 .card 為 PNG（card-{n}.png）。
+ * 依序匯出頁面上所有 .card 為 JPG（card-{n}.jpg）。
  * 過程中更新按鈕文字以提供進度回饋。
  * @param {HTMLButtonElement} [button] - 進度回饋按鈕（可選）
  * @returns {Promise<void>}
@@ -44,7 +44,7 @@ export async function exportCards(button) {
         backgroundColor: null,
         useCORS: true,
       });
-      downloadCanvas(canvas, `card-${i + 1}.png`);
+      downloadCanvas(canvas, `card-${i + 1}.jpg`);
       if (btn) btn.textContent = `匯出中… (${i + 1}/${total})`;
     }
   } finally {

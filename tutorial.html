@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNA 圖卡產生器教學</title>
+  <link rel="stylesheet" href="src/styles/main.css">
+  <link rel="stylesheet" href="src/styles/tutorial.css">
+</head>
+<body class="tutorial-page">
+
+  <nav class="tutorial-nav" aria-label="章節導覽">
+    <ul>
+      <li><a href="#system-overview">系統簡介</a></li>
+      <li><a href="#getting-started">本機啟動</a></li>
+      <li><a href="#template-timeline">版型一：時間軸</a></li>
+      <li><a href="#template-headline">版型二：標題時間軸</a></li>
+      <li><a href="#template3">版型三：時間小標</a></li>
+      <li><a href="#dashboard-flow">Dashboard 串接流程</a></li>
+      <li><a href="#switching-modes">切換版型與模式</a></li>
+      <li><a href="#export-flow">匯出 2× JPG</a></li>
+    </ul>
+  </nav>
+
+  <main class="tutorial-main">
+    <header class="tutorial-header">
+      <h1>CNA 圖卡產生器教學</h1>
+      <p>給編輯、設計師、新加入協作者的操作指南。</p>
+    </header>
+
+    <section id="system-overview" class="tutorial-section">
+      <h2>系統簡介</h2>
+      <p>
+        CNA 圖卡產生器是一套純前端工具，可把 Google 試算表（或本機 CSV）的大事記資料，
+        自動排版成固定尺寸的圖卡供直接匯出成 2× JPG。
+      </p>
+      <p>系統包含三種版型，依大事記內容特性選用：</p>
+      <ul>
+        <li><strong>版型一：時間軸</strong>——年代 + 日期 + 內文，適合跨年度的事件列表。</li>
+        <li><strong>版型二：標題時間軸</strong>——同版型一，另外可在每張卡加上大標題、小標與資料來源。</li>
+        <li><strong>版型三：時間小標</strong>——以小時：分鐘的細粒度時刻組織事件，時刻與小標呈現在同一行。</li>
+      </ul>
+      <p>
+        技術架構：無框架、無建置，所有頁面（<code>index.html</code>、<code>dashboard.html</code>）
+        直接用 <code>&lt;script type="module"&gt;</code> 載入 <code>src/*.js</code>，以
+        <code>python3 -m http.server</code> 靜態伺服器開啟即可。
+      </p>
+    </section>
+
+    <section id="getting-started" class="tutorial-section">
+      <h2>本機啟動</h2>
+      <p>必須用 HTTP 伺服器開啟，不能雙擊用 <code>file://</code>，因為 ES module 與 fetch 會被瀏覽器限制。</p>
+
+      <pre class="tutorial-code"><code>cd /Users/yulincho/Documents/01_Github/cna-graphiccard
+python3 -m http.server 8766</code></pre>
+
+      <p>啟動後，在瀏覽器開啟以下常用網址：</p>
+
+      <pre class="tutorial-code"><code>http://localhost:8766/dashboard.html
+http://localhost:8766/index.html?mission=2026_美伊戰爭大事記</code></pre>
+
+      <div class="tutorial-note">
+        <strong>注意：</strong>改完 JS/CSS 後瀏覽器要強制重整 <code>Cmd+Shift+R</code>。
+        <code>python3 -m http.server</code> 不會幫忙送 no-cache header。
+      </div>
+    </section>
+
+    <section id="template-timeline" class="tutorial-section">
+      <h2>版型一：時間軸</h2>
+      <p>
+        適合以日期為主軸的大事記，每個節點呈現一個日期加一段說明文字。
+        同年的節點共用一個年代徽章，年份改變時自動出現新的年代標記。
+      </p>
+
+      <h3>CSV 欄位</h3>
+      <p>每張試算表分頁的第一列必須是以下欄位名稱（接受別名 <code>日期</code> 對應 <code>時間</code>、<code>內容</code> 對應 <code>內文</code>）：</p>
+      <div class="tutorial-table-wrap">
+        <table class="tutorial-table">
+          <thead>
+            <tr>
+              <th>年代</th>
+              <th>日期</th>
+              <th>內文</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026</td>
+              <td>2月28日</td>
+              <td>美國與以色列對伊朗各地發動空襲，擊斃伊朗最高領袖、執政近37年的哈米尼，另有多名高階軍事與情報官員喪生。</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>3月1日</td>
+              <td>（後續事件……）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>年代</strong>：西元年份，可向下填充（只在年份變動時填值即可）。</li>
+        <li><strong>日期</strong>：月日文字，例如 <code>2月28日</code>。</li>
+        <li><strong>內文</strong>：事件說明，支援換行（CSV 儲存格內換行）。</li>
+      </ul>
+
+      <h3>開啟範例</h3>
+      <pre class="tutorial-code"><code>http://localhost:8766/index.html?mission=2026_美伊戰爭大事記</code></pre>
+    </section>
+
+    <section id="template-headline" class="tutorial-section">
+      <h2>版型二：標題時間軸</h2>
+      <p>
+        在版型一的基礎上，每張卡片最上方呈現固定的大標題，節點新增小標欄位，
+        卡片底部顯示資料來源與更新時間。適合需要標題、資料出處的正式圖卡。
+      </p>
+
+      <h3>CSV 欄位</h3>
+      <div class="tutorial-table-wrap">
+        <table class="tutorial-table">
+          <thead>
+            <tr>
+              <th>年代</th>
+              <th>標題</th>
+              <th>時間</th>
+              <th>小標</th>
+              <th>內文</th>
+              <th>資料來源</th>
+              <th>更新時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2024</td>
+              <td>柯文哲案大事記</td>
+              <td>5月2日</td>
+              <td>北檢他字案偵辦京華城、北士科等案</td>
+              <td>民眾告發京華城、北士科等案，分他字案偵辦，柯文哲被列為貪污治罪條例被告</td>
+              <td>中央社</td>
+              <td>2026/03/26</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td>8月12日</td>
+              <td>北檢主動簽分他字案偵辦柯文哲政治獻金案</td>
+              <td>柯文哲政治獻金案，北檢主動簽分他字案偵辦</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>標題</strong>：圖卡大標，只需在第一列填值（自動沿用至整個試算表分頁）。</li>
+        <li><strong>時間</strong>：月日文字，亦接受別名 <code>日期</code>。</li>
+        <li><strong>小標</strong>：節點粗體小標題，顯示在時間下方。</li>
+        <li><strong>資料來源</strong>、<strong>更新時間</strong>：顯示在卡片底部，只需填第一列。</li>
+      </ul>
+
+      <h3>開啟範例</h3>
+      <pre class="tutorial-code"><code>http://localhost:8766/index.html?mission=2026_柯文哲案大事記</code></pre>
+    </section>
+
+    <section id="template3" class="tutorial-section">
+      <h2>版型三：時間小標</h2>
+      <p>
+        以「日期大點 → 事件小點」的階層結構排列，時刻（<code>22:23</code>）與小標顯示在同一行，
+        內文顯示在下方。適合同一天有多個小時：分鐘精度事件的大事記，例如當日戒嚴令。
+      </p>
+
+      <h3>CSV 欄位</h3>
+      <p>欄位名稱與版型二相同，差異在 <strong>時間</strong> 欄填入帶有時刻的字串：</p>
+      <div class="tutorial-table-wrap">
+        <table class="tutorial-table">
+          <thead>
+            <tr>
+              <th>年代</th>
+              <th>標題</th>
+              <th>時間</th>
+              <th>小標</th>
+              <th>內文</th>
+              <th>資料來源</th>
+              <th>更新時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2024</td>
+              <td>南韓戒嚴大事記</td>
+              <td>12月3日22 : 23</td>
+              <td>總統尹錫悅透過電視談話宣布實施緊急戒嚴令</td>
+              <td>任命陸軍參謀總長朴安洙為戒嚴司令</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td>12月3日22 : 40</td>
+              <td>最大在野黨要求召開緊急國會會議</td>
+              <td>共同民主黨黨魁李在明敦促所有國會議員聚集在國會議事堂，展開推翻戒嚴令的程序。</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>時間</strong>：格式為 <code>月日HH : MM</code>，例如 <code>12月3日22 : 23</code>。冒號前後的空格會自動忽略。</li>
+        <li>同一天的多個事件共用一個日期大點，只需在第一個事件填入含日期的時間。</li>
+        <li><strong>小標</strong>與時刻並排在第一行；<strong>內文</strong>獨立顯示在第二行。</li>
+      </ul>
+
+      <h3>開啟範例</h3>
+      <pre class="tutorial-code"><code>http://localhost:8766/index.html?mission=2024_南韓戒嚴大事記&amp;template=template3&amp;split=0</code></pre>
+    </section>
+
+    <section id="dashboard-flow" class="tutorial-section">
+      <h2>Dashboard 串接 Google 試算表流程</h2>
+      <p>
+        <code>dashboard.html</code> 提供圖形化介面，可直接貼上 Google 試算表網址，
+        從分頁清單選擇要開啟的大事記，不需要手動組 URL 參數。
+      </p>
+      <ol>
+        <li>
+          <strong>試算表網址輸入框</strong>（<code>#sheet-url</code>）：
+          貼上 Google 試算表的分享網址，格式為
+          <code>https://docs.google.com/spreadsheets/d/…</code>。
+        </li>
+        <li>
+          <strong>連結試算表按鈕</strong>（<code>#btn-connect</code>）：
+          點擊後系統會讀取試算表的所有分頁名稱，填入下方的「選擇分頁」下拉選單。
+        </li>
+        <li>
+          <strong>選擇分頁下拉選單</strong>（<code>#tab-select</code>）：
+          從下拉選單選擇要顯示的分頁（即一張大事記）。
+        </li>
+        <li>
+          <strong>版型選單</strong>（<code>#template-select</code>）：
+          選擇版型一、版型二或版型三，預設為版型三。
+        </li>
+        <li>
+          <strong>開啟按鈕</strong>（<code>#btn-open</code>）：
+          點擊後系統自動跳轉到 <code>index.html</code>，帶入對應的試算表 ID、分頁名稱與版型參數。
+        </li>
+      </ol>
+    </section>
+
+    <section id="switching-modes" class="tutorial-section">
+      <h2>切換版型與模式</h2>
+      <p>在 <code>index.html</code> 的頂部工具列可以切換版型與顯示模式：</p>
+
+      <h3>切換版型</h3>
+      <p>
+        版型選單（<code>#template-select</code>）提供三個選項：
+        版型一：時間軸、版型二：標題時間軸、版型三：時間小標。
+        選擇後頁面會立即重新渲染，URL 的 <code>?template=</code> 參數也會同步更新，
+        方便直接分享當下的版型網址。
+      </p>
+
+      <h3>切分 / 不切分模式</h3>
+      <p>工具列右側的模式切換按鈕控制圖卡分頁行為：</p>
+      <ul>
+        <li>
+          <strong>切分</strong>（<code>#btn-mode-split</code>）：
+          系統依固定卡片高度自動將大事記切成多張卡片，每張卡片均為相同尺寸，
+          適合輸出供社群媒體使用的等高圖片。
+        </li>
+        <li>
+          <strong>不切分</strong>（<code>#btn-mode-single</code>）：
+          所有事件放在單一一張卡片上，高度依內容自動延伸，
+          適合預覽完整大事記或輸出長圖。
+        </li>
+      </ul>
+    </section>
+
+    <section id="export-flow" class="tutorial-section">
+      <h2>匯出 2× JPG</h2>
+      <p>確認版型與模式設定正確後，點擊工具列右側的「匯出所有卡片」按鈕（<code>#btn-export</code>）。</p>
+      <ul>
+        <li>系統會以 2× 比例依序把每張卡片渲染成 JPG（<code>image/jpeg</code>），並逐張自動下載到瀏覽器的預設下載資料夾。</li>
+        <li>固定尺寸的 1200×1200px 卡片會輸出為 2400×2400px；單張長圖維持 2400px 寬，高度依內容增加。</li>
+        <li>檔案名稱格式為 <code>card-1.jpg</code>、<code>card-2.jpg</code>……依此類推。</li>
+        <li>匯出期間頁面會短暫進入匯出模式（移除縮放），完成後自動恢復預覽狀態。</li>
+        <li>建議先以「切分」模式確認分頁結果無誤後再匯出；若卡片空白或文字被截斷，嘗試強制重整（<code>Cmd+Shift+R</code>）再重試。</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <script src="src/tutorial.js"></script>
+</body>
+</html>

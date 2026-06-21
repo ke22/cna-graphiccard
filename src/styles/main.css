@@ -39,129 +39,214 @@ body {
   right: 0;
   z-index: 100;
   display: flex;
+  align-items: stretch;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #111827;
+}
+
+/* groups */
+.tb-group {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  padding: 0 24px;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  color: #fff;
+  padding: 0 14px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tb-group + .tb-group {
+  border-left: 1px solid #E5E7EB;
+}
+.tb-group--right {
+  margin-left: auto;
+  gap: 4px;
 }
 
 .toolbar-title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 200px;
 }
 
-.toolbar-actions {
-  display: flex;
+/* ghost selects */
+.tb-select {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
 }
-
+.tb-select select,
 .toolbar-select,
 .mission-select {
-  width: min(320px, 28vw);
-  height: 38px;
-  padding: 0 12px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0 22px 0 8px;
+  height: 32px;
+  font: 600 12.5px/1 inherit;
+  color: #6B7280;
+  cursor: pointer;
   border-radius: 6px;
-  font: inherit;
-  font-size: 15px;
+  white-space: nowrap;
+  max-width: 160px;
+  width: auto;
+  transition: background 120ms, color 120ms;
+  outline: none;
 }
-
-.template-select {
-  width: min(220px, 20vw);
+.tb-select select:hover,
+.tb-select select:focus-visible,
+.toolbar-select:hover,
+.toolbar-select:focus-visible,
+.mission-select:hover,
+.mission-select:focus-visible {
+  background: #F3F4F6;
+  color: #111827;
 }
-
-.toolbar-select:disabled,
-.mission-select:disabled {
-  opacity: 0.55;
+.tb-select select:focus-visible,
+.toolbar-select:focus-visible,
+.mission-select:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: -1px;
 }
-
+.tb-select::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 0; height: 0;
+  border-left: 3.5px solid transparent;
+  border-right: 3.5px solid transparent;
+  border-top: 4.5px solid #9CA3AF;
+}
 .toolbar-select option,
 .mission-select option {
-  color: #12141a;
+  color: #111827;
+}
+.toolbar-select:disabled,
+.mission-select:disabled {
+  opacity: 0.45;
 }
 
-/* 切分／不切分 模式切換 */
+/* mode toggle */
 .mode-toggle {
   display: inline-flex;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
-  overflow: hidden;
+  background: #F3F4F6;
+  border-radius: 7px;
+  padding: 3px;
+  gap: 2px;
+  border: none;
 }
-
 .mode-btn {
-  padding: 8px 16px;
-  font-size: 15px;
-  color: #fff;
+  padding: 0 10px;
+  height: 26px;
+  font: 600 12px/1 inherit;
+  color: #6B7280;
   background: transparent;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms, color 100ms, box-shadow 100ms;
 }
-
 .mode-btn.active {
-  background: var(--color-header);
-  font-weight: bold;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06);
+  font-weight: 700;
+}
+.mode-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: -1px;
 }
 
-/* 刷新鈕：重新載入表單最新資料 */
+/* refresh icon button */
 .btn-refresh {
   flex: none;
-  padding: 10px 16px;
-  font-size: 16px;
-  color: #fff;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #6B7280;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.btn-refresh:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.btn-refresh:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 刷新成功的短暫提示 */
-.btn-refresh.is-done {
-  color: #fff;
-  background: #2e9e5b;
-  border-color: #2e9e5b;
-  opacity: 1;
-}
-
-.btn-export {
-  flex: none;
-  padding: 10px 20px;
-  font-size: 16px; /* WCAG: 不低於 16px 可讀性下限 */
-  font-weight: bold;
-  color: #fff;
-  background: var(--color-header);
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: background 120ms, color 120ms;
 }
-
-.btn-export:hover:not(:disabled) {
-  opacity: 0.85;
+.btn-refresh:hover:not(:disabled) {
+  background: #F3F4F6;
+  color: #111827;
 }
-
-.btn-export:disabled {
-  opacity: 0.5;
+.btn-refresh:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
+}
+.btn-refresh.is-done {
+  color: #059669;
+  background: transparent;
+}
+
+/* export button */
+.btn-export {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  font: 600 12.5px/1 inherit;
+  color: #fff;
+  background: #111827;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 120ms;
+}
+.btn-export:hover:not(:disabled) {
+  opacity: 0.84;
+}
+.btn-export:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-export:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+/* tutorial link */
+.toolbar-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 8px;
+  font: 500 12.5px/1 inherit;
+  color: #6B7280;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background 120ms, color 120ms;
+}
+.toolbar-link:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
+.toolbar-link:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: -1px;
 }
 
 /* 卡片容器：預設預覽模式，垂直堆疊、置中、深色背景 */
@@ -170,7 +255,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 84px 0 40px;
+  padding: 76px 0 40px;
 }
 
 .card-preview {
@@ -198,27 +283,23 @@ body.is-exporting .card-preview > .card {
 
 @media (max-width: 900px) {
   .toolbar {
-    align-items: flex-start;
-    height: auto;
-    min-height: 60px;
-    padding: 12px 16px;
+    height: 52px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+
+  .tb-group {
+    padding: 0 10px;
+    flex-shrink: 0;
   }
 
-  .toolbar-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .mission-select {
-    width: min(100%, 260px);
-  }
-
-  .template-select {
-    width: min(100%, 220px);
+  .toolbar-title {
+    max-width: 120px;
   }
 
   .app {
-    padding-top: 112px;
+    padding-top: 76px;
   }
 }
 

@@ -6,11 +6,26 @@
   <title>CNA 圖卡 Dashboard</title>
   <link rel="stylesheet" href="src/styles/main.css">
   <link rel="stylesheet" href="src/styles/dashboard.css">
+  <link rel="stylesheet" href="src/styles/tutorial-popup.css">
 </head>
 <body>
-  <div id="toolbar" class="toolbar">
-    <span class="toolbar-title">CNA 圖卡 Dashboard</span>
-  </div>
+  <header id="toolbar" class="toolbar dashboard-toolbar">
+    <a class="dashboard-brand" href="dashboard.html" aria-label="CNA 圖卡工作台">
+      <span class="dashboard-brand-slug">CNA</span>
+      <span class="dashboard-brand-slash" aria-hidden="true"></span>
+      <span class="dashboard-brand-name">圖卡工作台</span>
+    </a>
+    <div class="dashboard-nav-sep" aria-hidden="true"></div>
+    <nav class="dashboard-primary-nav" aria-label="主要導覽">
+      <a
+        class="dashboard-nav-link is-current"
+        href="dashboard.html"
+        aria-current="page"
+      >Dashboard</a>
+      <a class="dashboard-nav-link" href="index.html">圖卡預覽</a>
+      <a id="btn-tutorial" href="#" class="dashboard-nav-link">使用教學</a>
+    </nav>
+  </header>
 
   <main class="dashboard">
     <section class="dash-card">
@@ -45,7 +60,7 @@
         <select id="template-select" class="dash-select dash-select-template" aria-label="選擇版型">
           <option value="timeline">版型一：時間軸</option>
           <option value="headline">版型二：標題時間軸</option>
-          <option value="template3">版型三：時間小標</option>
+          <option value="template3" selected>版型三：時間小標</option>
         </select>
         <button id="btn-open" class="dash-btn dash-btn-primary" type="button" disabled>開啟</button>
       </div>
@@ -55,5 +70,6 @@
   </main>
 
   <script type="module" src="src/dashboard.js"></script>
+  <script type="module">import { initTutorialPopup } from './src/tutorial-popup.js'; initTutorialPopup();</script>
 </body>
 </html>

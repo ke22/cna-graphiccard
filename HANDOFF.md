@@ -1,177 +1,203 @@
 # Handoff — CNA 圖卡產生器
 
-最後更新：2026-06-18
+最後更新：2026-06-21
 
 ## 這是什麼
 
-中央社（CNA）新聞圖卡產生器，純前端（HTML/CSS/JS，無框架、無建置）。目前支援兩個時間軸版型：
+中央社（CNA）新聞圖卡產生器，純前端（HTML/CSS/JS，無框架、無建置）。目前支援三個時間軸版型：
 
-- **版型一·時間軸**：欄位 `年代,時間,內文`，用於一般事件時間軸。
-- **版型二·標題時間軸**：欄位 `年代,標題,時間,小標,內文,資料來源,更新時間`，用於有主標、小標與段落內文的大事記。
+- **版型一·時間軸**：欄位 `年代, 時間, 內文`，用於一般事件時間軸。
+- **版型二·標題時間軸**：欄位 `年代, 標題, 時間, 小標, 內文, 資料來源, 更新時間`，用於有主標、小標與段落內文的大事記。
+- **版型三·時間小標**：欄位 `年代, 標題, 時間, 小標, 內文, 資料來源, 更新時間`，「年代標籤 → 大點日期 → 小點事件」垂直階層，同年同日的連續事件共用日期標題。
 
-完整規格：
+年代欄接受別名：`年代`、`年`、`西元`（三個版型均已支援）。
 
-- `docs/templates/版型一-時間軸.md`
-- `docs/templates/版型二-標題時間軸.md`
+## 目前進行中的 Spectra change
+
+目前沒有進行中的 change。可執行以下指令歸檔已完成的 change：
+
+```bash
+spectra archive tutorial-user-popup
+spectra archive accessible-card-typography
+spectra archive optimize-dashboard-navigation
+spectra archive adjust-template3-layout
+spectra archive add-system-tutorial
+```
 
 ## 如何啟動
 
 必須用 HTTP 伺服器開啟，不能雙擊用 `file://`，因為 ES module 與 fetch 會被瀏覽器限制。
 
 ```bash
-cd /Users/yulincho/Documents/GitHub/cna-graphiccard
+cd /Users/yulincho/Documents/01_Github/cna-graphiccard
 python3 -m http.server 8766
 ```
 
-常用網址：
+啟動後開 `dashboard.html` 即自動載入預設試算表（不需要再貼 URL）：
 
 ```text
 http://localhost:8766/dashboard.html
-http://localhost:8766/index.html?mission=2026_美伊戰爭大事記
-http://localhost:8766/index.html?mission=2026_柯文哲案大事記
-http://localhost:8766/index.html?mission=2026_柯文哲案大事記&split=0
 ```
 
-改完 JS/CSS 後瀏覽器要強制重整 `Cmd+Shift+R`。`python3 -m http.server` 不會幫忙送 no-cache header。
+其他常用網址：
+
+```text
+http://localhost:8766/index.html?mission=2026_美伊戰爭大事記
+http://localhost:8766/index.html?mission=2026_柯文哲案大事記
+http://localhost:8766/index.html?mission=2024_南韓戒嚴大事記&template=template3&split=0
+```
+
+改完 JS/CSS 後瀏覽器要強制重整 `Cmd+Shift+R`。`python3 -m http.server` 不會送 no-cache header。如果仍看到舊樣式，改用無痕模式，或開 DevTools → Application → Local Storage，清除 `cna-dashboard-sheet-url`。
 
 ## 主要檔案
 
 ```text
-index.html                         工具列、卡片掛載點、樣式引入
-dashboard.html                     Google Sheet 圖卡啟動入口
+index.html                         工具列（白色 frosted glass 52px）、卡片掛載點
+dashboard.html                     Google Sheet 圖卡啟動入口（52px nav，預設試算表自動連結）
+tutorial.html                      開發者教學頁：章節式導覽，CSV schema、Dashboard 流程、切換與匯出
 probe.html                         headless/iframe 驗證工具
+
 src/
-  main.js                          主流程：URL 參數、載入資料、選版型、斷頁、渲染
-  dashboard.js                     dashboard 連結試算表、列分頁、開啟模板
+  main.js                          主流程：URL 參數、載入資料、選版型、斷頁、渲染；無 query 時自動導向預設試算表
+  dashboard.js                     dashboard 連結試算表、列分頁、開啟模板；init() 自動連結預設試算表
+  tutorial.js                      教學頁 IntersectionObserver 捲動高亮（純 script，無 type="module"）
+  tutorial-popup.js                共用彈窗模組：initTutorialPopup() 建立 <dialog>、兩個 tab（操作流程 / 版型說明）
   csv-loader.js                    manifest 定位、Google Sheet/本機 CSV 載入、RFC4180 解析
-  paginator.js                     量測節點高度、切分/不切分、DP 平衡斷頁
-  renderer.js                      共用卡片外框、頁首、年代徽章、頁尾、呼叫版型 renderNode
-  exporter.js                      html2canvas 逐卡輸出 PNG
-  sheets-api.js                    Sheets API、spreadsheet/gid 解析、gviz URL 組裝
+  paginator.js                     量測節點高度、切分/不切分、DP 平衡斷頁、版型三日期延續分頁
+  renderer.js                      共用卡片外框、頁首、年代徽章、頁尾
+  exporter.js                      html2canvas 以 2× 比例逐卡輸出 JPG
+  sheets-api.js                    Sheets API、spreadsheet/gid 解析、gviz URL 組裝；DEFAULT_SPREADSHEET_URL 預設試算表
+
   templates/
-    registry.js                    template id -> template module，未知 id fallback 到 timeline
-    timeline.js                    版型一 buildNodes/renderNode
-    headline.js                    版型二 buildNodes/renderNode
+    registry.js                    template id → module；未知 id fallback timeline
+    timeline.js                    版型一 buildNodes/renderNode（COLUMNS.year 接受 年代/年/西元）
+    headline.js                    版型二 buildNodes/renderNode（COLUMNS.year 接受 年代/年/西元）
+    template3.js                   版型三 buildNodes/renderNode（COLUMNS.year 接受 年代/年/西元）
+
   styles/
-    dashboard.css                  dashboard 頁面樣式
-    main.css                       全域與工具列
-    timeline.css                   共用卡片與版型一節點樣式
-    headline.css                   版型二三層節點樣式
+    main.css                       全域與 index.html 工具列（白色 frosted glass，tb-group 分隔線，ghost select）
+    dashboard.css                  dashboard 52px nav（bottom-border active state，紅色品牌斜線）
+    timeline.css                   共用卡片與版型一節點樣式（32px 字體）
+    headline.css                   版型二三層節點樣式（34px 小標）
+    template3.css                  版型三日期/事件圓點與階層樣式
+    tutorial.css                   教學頁版面，scope 在 .tutorial-page
+    tutorial-popup.css             <dialog> 彈窗樣式（tabs、步驟列表、版型說明卡片）
+
 missions/
-  index.json                       任務 manifest；可用 template 指定版型
-  2026_美伊戰爭大事記/*.csv         版型一資料
+  index.json                       任務 manifest
+  2026_美伊戰爭大事記/*.csv         版型一資料（年代欄名為「西元」）
   2026_柯文哲案大事記/*.csv         版型二資料
-openspec/changes/add-headline-template/
-  proposal.md
-  tasks.md                         所有項目已完成
-openspec/changes/add-mission-dashboard/
-  proposal.md
-  tasks.md                         實作項目已完成，驗證清單仍保留人工確認項
+  2024_南韓戒嚴大事記/*.csv         版型三範例資料
 ```
 
-## Dashboard / Sheet / Page 切換
+## 預設試算表自動載入
 
-Dashboard 功能已存在，入口是：
+`src/sheets-api.js` 定義：
 
-```text
-http://localhost:8766/dashboard.html
+```js
+export const DEFAULT_SPREADSHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/edit?gid=2027148002#gid=2027148002';
 ```
 
-流程：
+**三個地方**依賴這個常數：
 
-1. `dashboard.html` 預設帶入公開試算表 `1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8`。
-2. `src/dashboard.js` 呼叫 Google Sheets API v4 列出分頁，每個 option 的 value 是 `sheetId`/`gid`。
-3. 可選「版型一：時間軸」或「版型二：標題時間軸」。
-4. 按「開啟」會導到 `index.html?sheet=<gviz CSV URL>&title=<分頁名稱>&template=<版型>`，不需要 `mission`；卡片頁首會優先使用 sheet/CSV 的 `標題` 欄，`title` 只作 fallback。
-5. `index.html` 若以 `?sheet=` 開啟，工具列的 `#mission-select` 會顯示同一試算表的分頁清單。
-6. 模板工具列也有 `#template-select`，載入後可直接切換版型。
-7. 在模板工具列切換分頁，會導到新的 `index.html?sheet=...&title=...`，並保留目前 URL 的 `template` 與 `split` 參數。
+1. `src/main.js`：`index.html` 無任何 query 時，`window.location.replace(buildTemplateUrl(...))` 導向預設試算表第一個分頁。
+2. `src/dashboard.js`：`init()` 優先序：localStorage `cna-dashboard-sheet-url` > `spreadsheets.json` 第一筆 > `DEFAULT_SPREADSHEET_URL`，任何情況都會自動連結。
+3. `src/sheets-api.js`：提供給上述兩個檔案 import。
 
-相關 URL 組裝集中在 `src/sheets-api.js`：
+**重要**：`localStorage` 的 `cna-dashboard-sheet-url` 會蓋過 `DEFAULT_SPREADSHEET_URL`。若要重置回預設，在 DevTools → Application → Local Storage 刪除該 key，或用無痕模式。
 
-- `parseSpreadsheetId(url)`
-- `parseSheetId(url)`
-- `buildGvizCsvUrl(spreadsheetId, sheetId)`
-- `buildTemplateUrl(spreadsheetId, sheetId, title, options)`
+## 工具列（index.html）
 
-注意：列分頁依賴 `src/sheets-api.js` 內的 Google Sheets API key，試算表也必須公開可讀。資料內容仍走 gviz CSV；Sheets API 只用來拿分頁清單。
+52px 白色 frosted glass（`rgba(255,255,255,0.96)` + `backdrop-filter: blur(12px)`），`border-bottom: 1px solid rgba(0,0,0,0.08)`。
+
+四個 `.tb-group`，`border-left: 1px solid #E5E7EB` 分隔：
+
+| 群組 | 內容 |
+|---|---|
+| identity | `#mission-title`（任務標題，最大 200px） |
+| source | `#sheet-select`（切換試算表，不足 2 個時隱藏）、`#mission-select`（切換分頁） |
+| view | `#template-select`（版型）、mode toggle（切分/不切分） |
+| actions | `#btn-refresh`（↻）、`#btn-export`（匯出）、`#btn-tutorial`（教學彈窗） |
+
+## Dashboard nav
+
+52px，`align-items: stretch`。左側品牌區：`CNA` slug + 1.5px 紅色斜線 + `圖卡工作台` 名稱。Active 狀態改用 `box-shadow: inset 0 -3px 0 0 var(--dashboard-nav-accent)` 取代白色方框。
+
+## 教學彈窗（tutorial-popup.js）
+
+`index.html` 與 `dashboard.html` 的「教學」/「使用教學」連結（`id="btn-tutorial"`）點擊後開啟 `<dialog id="tutorial-dialog">`，不跳轉頁面。
+
+彈窗兩個 tab：
+
+- **操作流程**：三步驟使用指引（選分頁 → 選版型/模式 → 匯出），無終端機指令或 URL 參數。
+- **版型說明**：三個版型的欄位對照表（必填欄位以藍色標籤標示）。
+
+Footer 有「開發者說明 →」連結導向 `tutorial.html`（技術參考保留不變）。
+
+API：
+
+```js
+import { initTutorialPopup } from './src/tutorial-popup.js';
+initTutorialPopup(); // idempotent；#btn-tutorial 不存在時靜默返回
+```
+
+## 卡片字體尺寸（accessible-card-typography）
+
+2026-06-21 字體放大，目標是印出/截圖後清晰閱讀：
+
+| 元素 | 舊 | 新 |
+|---|---|---|
+| 版型一 內文 | 28px | 32px |
+| 版型二/三 小標 | 28px | 34px |
+| 版型三 內文 | 28px | 32px |
+| 頁尾文字 | 24px | 28px |
+| `FOOTER_TWO_LINE`（`main.js`） | 116 | 132 |
 
 ## 版型選擇邏輯
 
-`src/main.js` 的版型優先序：
+`src/main.js` 版型優先序：
 
 1. URL `?template=...`
 2. `missions/index.json` 裡該任務的 `template`
-3. 預設 `timeline`
+3. 預設 `timeline`（`registry.js` 的 `DEFAULT_TEMPLATE_ID`；Dashboard 選單預設 UI 值是 `template3`，兩件事）
 
-未知 template id 會在 `src/templates/registry.js` fallback 到 `timeline` 並 `console.warn`。
+未知 template id 在 `registry.js` fallback 到 `timeline` 並 `console.warn`。
 
-目前 manifest：
+## 版型三 · 時間小標 階層
 
-- `2026_美伊戰爭大事記`：未設 `template`，預設 `timeline`，並有 Google Sheet `sheet` 即時來源。
-- `2026_柯文哲案大事記`：`template: "headline"`，`sheet` 指向同一試算表的 `gid=751022733`，本機 CSV 作為 fallback。
+- `parseTime` 將時間欄拆成 dateText、`HH:MM` clockText、與 timeSuffix（例：`12月3日22:50 左右` → 日期 `12月3日`、時刻 `22:50`、suffix `左右`）。
+- 同年同日的連續事件只有第一筆 `showDate = true`，其餘共用日期標題。
+- `renderNode`：年代徽章（`renderer.js`）→ 可選 `.template3-date-header`（36px 圓點，`showDate` 或 `forceDate`）→ `.template3-event`（20px 圓點 + clock-row + 內文）。
+- 有 `clockText` 時，時刻與小標合併在 `.node-clock-row`（`flex-wrap: wrap`）；無 `clockText` 時小標單獨一行。
 
-## 驗證狀態
+## 分頁與日期延續（paginator.js）
 
-Spectra change：`add-headline-template`
+- 版型三每個節點量測「一般高度」與「強制日期高度」；候選卡片第一節點一律用強制日期高度計算。
+- 跨卡續頁：複製首節點並設 `forceDate = true`，確保每張卡片開頭有日期脈絡，不修改原始資料。
 
-```bash
-spectra validate add-headline-template --strict
-```
+## 共用頁首 / 頁尾
 
-結果：`✓ add-headline-template — valid`
-
-Spectra change：`add-mission-dashboard`
-
-```bash
-spectra validate add-mission-dashboard --strict
-```
-
-結果：`✓ add-mission-dashboard — valid`
-
-已完成驗證：
-
-- Dashboard：headless Chrome 開 `dashboard.html`，成功列出預設試算表 4 個分頁：`type_1`, `type_2`, `「20260615_美伊戰爭大事記」的副本`, `工作表2`。
-- Dashboard 版型選擇：`dashboard.html` 已顯示「版型一：時間軸」與「版型二：標題時間軸」選單，開啟 URL 會帶 `template=timeline|headline`。
-- Sheet URL 模板載入：`index.html?sheet=<gid 0 gviz>&title=type_1` 不帶 `mission` 可正常渲染卡片，工具列分頁下拉顯示同 4 個分頁。
-- Sheet URL 版型二：`index.html?sheet=<gid 761990654 gviz>&title=type_2&template=headline` 可正常渲染 `.node--headline`。
-- 模板頁 nav 版型切換：`index.html?sheet=<gid 761990654 gviz>&title=type_2&template=headline&split=0` 會顯示 toolbar 版型選單、不切分狀態、`.node--headline`。
-- URL 組裝：Node 檢查 `parseSpreadsheetId`、`parseSheetId`、`buildGvizCsvUrl`、`buildTemplateUrl` 輸出正確。
-- 版型一 `2026_美伊戰爭大事記`：切分模式 4 張，每張 1200x1200，無 overflow。
-- 版型一 `split=0`：單張長圖 1200x3167，無 overflow。
-- 版型二 `2026_柯文哲案大事記`：切分模式 6 張，每張 1200x1200，無 overflow。
-- 版型二 `split=0`：單張長圖 1200x5419，無 overflow。
-- 版型二資料解析：30 筆節點、年代 badge 為 2024/2025/2026、12 筆只有小標、空列不產生節點、跨列年代填充正常、多行內文保留。
-- 未整理資料轉換：`/Users/yulincho/Desktop/柯文哲案大事記 - 工作表1.csv` 已整理成 `missions/2026_柯文哲案大事記/柯文哲案大事記 - 工作表2_cleaned.csv`，可貼到 Google Sheet `工作表2` / `gid=751022733`。
-- 匯出流程：因 CDN/網路限制，使用 `probe.html?export=1` stub `html2canvas` 驗證 `exportCards()` 會逐卡 render/download；版型一 4/4、版型二 6/6。
+- 標題優先序：sheet/CSV `標題` 欄 > URL `?title=` > 任務名稱 > `CNA 時間軸圖卡`。
+- 頁尾（`renderer.js`）：`資料來源` 與 `更新日期` 皆空則不渲染。
+- `renderer.js` 幫 timeline 容器加 `timeline--<template.id>` class，讓各版型 CSS scope 覆寫不互衝。
 
 ## 驗證工具
 
-`probe.html` 會用同源 iframe 載入 `index.html`，量測 `.card` 的寬高與 overflow。
-
-例：
+`probe.html` 用同源 iframe 載入 `index.html`，量測 `.card` 的寬高與 overflow：
 
 ```text
 http://localhost:8766/probe.html?m=2026_柯文哲案大事記
 http://localhost:8766/probe.html?m=2026_柯文哲案大事記&split=0
 http://localhost:8766/probe.html?m=2026_柯文哲案大事記&export=1
+http://localhost:8766/probe.html?m=2024_南韓戒嚴大事記&template=template3
 ```
-
-注意：`probe.html` 的 `m` 會轉成 iframe 裡的 `mission`，其他 query params 會原樣轉送，所以可測 `split=0`、`template=headline`、`export=1`。
-
-## Git / 工作區狀態
-
-目前 repo 是有效 git worktree，但本次變更尚未 commit。預期會看到以下變更：
-
-- Modified tracked：`HANDOFF.md`, `dashboard.html`, `index.html`, `missions/index.json`, `openspec/changes/add-mission-dashboard/*`, `src/csv-loader.js`, `src/dashboard.js`, `src/main.js`, `src/paginator.js`, `src/renderer.js`, `src/sheets-api.js`, `src/styles/dashboard.css`, `src/styles/main.css`
-- Untracked：`LEARNING.md`, `docs/templates/版型二-標題時間軸.md`, `missions/2026_柯文哲案大事記/`, `openspec/changes/add-headline-template/`, `probe.html`, `src/styles/headline.css`, `src/templates/`
-- Do not commit：`missions/.DS_Store` metadata change.
-
-不要用 `git reset --hard` 或 checkout 清掉未追蹤檔；這些就是版型二與驗證所需內容。
 
 ## 後續建議
 
-- 若要交付，先人工用瀏覽器測一次真實 html2canvas 匯出，確認 CDN 可載入且 PNG 實際下載正常。
-- Dashboard 交付前也建議人工點一次「開啟」與模板工具列分頁切換，確認 Google API key 在部署網域 referrer 限制下仍可用。
-- 若要納入更多版型，沿用 `src/templates/{id}.js` 的 `buildNodes/renderNode` 介面，不要把版型特定欄位邏輯放回 `main.js` 或 `renderer.js`。
-- 若 `2026_柯文哲案大事記` 之後要接 Google Sheet，在 `missions/index.json` 加 `sheet` 即可；本機 CSV 可保留作 fallback。
+- 歸檔已完成的 change（見上方指令清單）。
+- 若要替換預設試算表，只改 `src/sheets-api.js` 的 `DEFAULT_SPREADSHEET_URL`。記得同時清除使用者瀏覽器的 `cna-dashboard-sheet-url` localStorage，否則舊 URL 仍優先。
+- 若要新增版型：沿用 `src/templates/{id}.js` 的 `{ id, columns, buildNodes, renderNode }` 介面；在 `registry.js` 登記；記得在 `tutorial-popup.js` 的版型說明 tab 補充欄位說明。
+- 版型三新增任務：`missions/index.json` 加 `template: "template3"` 即可，CSV 欄位與版型二相同。
+- 交付前人工驗一次真實 html2canvas 匯出（CDN 可用、JPG 下載正常）。
+- Dashboard 交付前確認 Google API key 在部署網域 referrer 限制下可用。

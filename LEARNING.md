@@ -1,68 +1,126 @@
-# Learning — add-headline-template
+# Learning — CNA 圖卡產生器
 
-最後更新：2026-06-18
+最後更新：2026-06-21
 
-## 可保留的設計決策
+---
 
-- 版型差異應集中在 `src/templates/`。`main.js` 只負責選版型與流程控制，`renderer.js` 只負責共用卡片外框、頁首、年代徽章、頁尾。
-- template module 目前的穩定介面是 `{ id, columns, buildNodes, renderNode }`。新增版型時優先延續這個介面。
-- `timeline` 是安全 fallback。manifest 沒有 `template` 或 URL 給未知 `template` 時，都不應影響既有任務。
-- CSV 解析不要改成簡單 split。現有 loader 處理 quoted CSV、多行欄位與 Google Sheet gviz CSV，版型二需要保留多行內文。
-- 年代向下填充要放在各 template 的 `buildNodes`，因為不同版型 schema 不同，但「空年代沿用上一列」是資料整理流程的共通習慣。
+## Session 2026-06-21
 
-## 版型二資料行為
+### CSV 欄位名稱別名要在所有層同步
 
-- schema：`年代,標題,時間,小標,內文,資料來源,更新時間`。
-- `標題`、`資料來源`、`更新時間` 取整欄第一個非空值，作為 meta。
-- `年代` 使用西元欄位值，逐列向下填充。
-- `小標` 與 `內文` 皆空的列不產生節點。
-- 只有 `小標` 沒有 `內文` 是合法狀態；DOM 不應渲染空的 `.node-content`。
-- 內文需逐字保留，包含換行。
+`美伊戰爭大事記` 試算表的年代欄名是 `西元`，不是 `年代` 或 `年`。這導致三個版型都沒有年份 badge。
 
-## Unclean Data Mapping
+根本原因：欄位別名分散在兩個地方：
 
-- `/Users/yulincho/Desktop/柯文哲案大事記 - 工作表1.csv` 原始格式是兩欄交錯列：有日期列代表事件，下一列日期空白時併入上一筆內文。
-- 轉換規則：第 1 欄日期 -> `年代` + `時間`；同列第 2 欄 -> `小標`；下一列空日期的第 2 欄 -> 上一筆 `內文`。
-- 民國年轉西元：`113年` -> `2024`、`114年` -> `2025`、`115年` -> `2026`，後續空年份沿用上一個年份。
-- 清理後輸出：`missions/2026_柯文哲案大事記/柯文哲案大事記 - 工作表2_cleaned.csv`，30 筆事件、18 筆有內文、12 筆只有小標、0 筆空節點。
-- 輸出必須用 UTF-8 without BOM。現有 CSV parser 不會移除標頭第一欄的 BOM，否則 `年代` 會被讀成 `﻿年代`，導致年份抓不到。
+1. `csv-loader.js` 的 `metaFrom()` — 決定整張試算表的 `sheetMeta.year`（fallback 年份來源）
+2. 各版型 `COLUMNS.year` 陣列 — 決定逐列攜帶年份的 `rawYear`
 
-## 驗證經驗
+只修一個地方，另一個地方還是找不到欄位，年份仍然空白。**兩個地方要一起改。** `timeline.js` 還有一個 `hasYear` 判斷（決定欄位位置 fallback），也要同步加入 `'西元'`。
 
-- 本專案一定要用 HTTP server 驗證，`file://` 會讓 module/fetch 行為失真。
-- macOS sandbox 下 `python3 -m http.server 8765` 可能因 port 被占用或權限失敗；這次可用 port 是 8766。
-- headless Chrome 驗證可用 `probe.html`，同源 iframe 能讀取卡片 DOM，比截圖更適合檢查卡片數、尺寸與 overflow。
-- Dashboard 驗證需要外部網路，因為列分頁走 Google Sheets API v4；資料載入則走 gviz CSV。兩者失敗模式不同，要分開看。
-- Chrome headless 在此環境可能不會自動結束，常見原因是 updater/helper process；拿到 DOM 輸出後可中止 session。
-- CDN 網路不可假設可用。匯出流程若要在受限環境驗證，可 stub `window.html2canvas`，確認 `exportCards()` 有逐張 render 並觸發 download；最後交付前仍要做一次真實瀏覽器匯出。
+教訓：新增欄位別名時，用 `grep -r "年代.*年\|年.*年代" src/` 確認所有用到該欄位的位置，不要只改最明顯的那一個。
 
-## Dashboard / Sheet 切換
+---
 
-- `dashboard.html` 是啟動入口，不是 `index.html` 裡的模式。它只負責選 Google 試算表分頁並導向模板。
-- `src/sheets-api.js` 是共用層：dashboard 和模板工具列都用它解析 spreadsheet ID/gid、列分頁、組 gviz URL。
-- dashboard 開出的模板 URL 是 `index.html?sheet=<encoded gviz>&title=<encoded tab title>&template=<timeline|headline>`；這條路徑可以沒有 `mission`。
-- 卡片頁首標題應優先跟 sheet/CSV 的 `標題` 欄；URL `title` 是分頁名稱 fallback，不應覆蓋資料表標題。
-- 要看版型二，必須選「版型二：標題時間軸」或手動在 URL 加 `template=headline`。
-- 模板頁只有在 `?sheet=` 裡解析得到 spreadsheet ID 時，才會顯示工具列的 `#mission-select` 分頁下拉。
-- 模板頁 toolbar 也有 `#template-select`；切換版型會改 URL 的 `template`，保留目前 sheet/page/title/split，再重新載入。
-- 切換分頁不是局部 fetch 重繪，而是導向新的 `index.html?sheet=...&title=...`。導向時要保留 `template`，否則會回到預設版型一。
-- Sheets API key 放在 `src/sheets-api.js`，應在 Google Cloud Console 限制 Sheets API 與部署網域 referrer；本機測試可能可用，部署後仍要測一次。
+### localStorage 會蓋過程式碼裡的預設值
 
-## 容易踩的點
+`cna-dashboard-sheet-url` 存在 localStorage 後，`DEFAULT_SPREADSHEET_URL` 的任何變更都不會生效，直到使用者清除 storage 或用無痕模式。這讓「為什麼程式碼改了但畫面沒變」非常難除錯。
 
-- `probe.html` 原本只支援 `m`，後來改成轉送其他 query params；測 `split=0` 或 `export=1` 時要確認 query 有進 iframe。
-- dashboard 的「分頁」是 Google Sheet tab/gid，不等於 `missions/index.json` 的 mission。`mission` 是本機 manifest 任務；`sheet` 是線上 CSV 覆寫來源。
-- 卡片固定寬高是 CSS/layout 契約。新增節點內容或樣式時，先測切分與不切分兩種模式。
+設計決策：讓 localStorage 保留優先權（記住上次用的試算表是合理 UX），但要在 HANDOFF 和教學裡明確記錄清除方式。不要試圖在程式碼裡「悄悄忽略」localStorage — 那只會製造更難預測的行為。
+
+---
+
+### ES module 快取問題難以即時驗證
+
+瀏覽器對 `type="module"` 的快取比一般 script 更激進，`Cmd+Shift+R` 有時不夠。在驗證視覺變化時，無痕模式是最可靠的方式，尤其是共用模組（如 `tutorial-popup.js`）被多頁引入時。
+
+---
+
+### `<dialog>` 的 backdrop click 偵測
+
+點擊 `::backdrop` 偽元素，事件會觸發在 `<dialog>` 元素本身（`event.target === dialogEl`），而不是在 backdrop DOM 節點上。這是正確行為，但反直覺。
+
+```js
+dialog.addEventListener('click', (e) => {
+  if (e.target === dialog) dialog.close(); // backdrop click
+});
+```
+
+如果沒有這個判斷，點擊 dialog 內容區域也會意外關閉。必須判斷 `event.target` 等於 dialog 本身（即點到邊框/backdrop 區域），而非 dialog 的子元素。
+
+---
+
+### 共用彈窗模組優於各頁內嵌
+
+`tutorial-popup.js` 被 `index.html` 和 `dashboard.html` 都引入。如果把 `<dialog>` 寫死在各 HTML 檔案裡，內容一旦需要更新就要改兩個地方，且容易漂移。
+
+動態建立 dialog 並 append 到 body，配合 `id` 冪等性檢查（若已存在就 return），兩個頁面共用同一份 JS，完全同步。
+
+---
+
+### 兩個 tab 的 popup 要明確區分受眾
+
+把操作流程和版型說明放在同一頁面會造成資訊混雜。Tab 切換的分工：
+- **操作流程** tab：記者/編輯看，3 個步驟，零技術術語
+- **版型說明** tab：協作者/新人看，哪種資料配哪個版型，必填欄位用顏色標示
+
+版型說明用視覺標籤（藍色 = 必填，灰色 = 選填）比表格更直覺，因為欄位數量少（3–7 個），不需要橫向捲動。
+
+---
+
+### toolbar 改版：ghost select 比下拉框有氣質
+
+舊工具列是深色背景 + 白字 select，在深色頁面背景下對比度不足，且 select 樣式跨瀏覽器難統一。
+
+新設計：白色 frosted glass toolbar + ghost select（no border at rest，hover 時 `#F3F4F6` 背景）。外觀乾淨，不需要手刻 dropdown，瀏覽器原生 select 下拉表現正常。`backdrop-filter: blur(12px)` 讓深色背景的預覽卡片透過工具列仍可感知，不會像白牆一樣切斷視覺。
+
+---
+
+### dashboard nav active state 用 bottom border 比 box 好
+
+舊的 active state 是白色方框（`background: rgba(255,255,255,0.15)` + `border`），在淺色 nav 上看不清楚。改用 `box-shadow: inset 0 -3px 0 0 var(--dashboard-nav-accent)` 的底部 underline，視覺重量輕，和 tab 設計語言一致，且只需一行 CSS。
+
+---
+
+## Session 2026-06-18（add-headline-template）
+
+### 版型差異應集中在 `src/templates/`
+
+`main.js` 只負責選版型與流程控制，`renderer.js` 只負責共用卡片外框、頁首、年代徽章、頁尾。版型特定邏輯一律放在各 template module 的 `buildNodes` 和 `renderNode`，不要放回共用層。
+
+### template module 穩定介面
+
+`{ id, columns, buildNodes, renderNode }`。新增版型時延續此介面，不要因為「方便」而在 main.js 加版型判斷。
+
+### CSV 解析不要改成 split
+
+現有 loader 處理 quoted CSV、多行欄位與 Google Sheet gviz CSV。版型二的 `內文` 需要保留多行換行（`\n`），簡單 split 會破壞。
+
+### 年代向下填充放在 buildNodes
+
+不同版型 schema 不同，但「空年代沿用上一列」是資料整理流程的共通習慣。各 template 自己處理，`main.js` 傳 `fallbackYear` 作保底。
+
+### Unclean Data Mapping（版型二）
+
+`柯文哲案大事記` 原始 CSV 是兩欄交錯：日期列 + 下一列空日期的內文。轉換規則：日期列第 2 欄 → 小標；空日期列第 2 欄 → 上一筆內文。民國年轉西元：`113年` → `2024`。UTF-8 without BOM，否則 `年代` 會被讀成 `﻿年代`（BOM 殘留）。
+
+### Dashboard / Sheet 切換關鍵
+
+- `mission`（manifest 任務）與 `sheet`（gviz URL 覆寫）是兩個獨立機制，不互相依賴。
+- `dashboard.html` 開出的 URL 是 `index.html?sheet=...&title=...`，不需要 `mission`。
+- 切換分頁是整頁導向，不是局部 fetch。導向時保留 `template` 參數，否則會 fallback 到版型一。
+- 卡片頁首優先用 sheet/CSV 的 `標題` 欄，`?title=` 只是分頁名稱 fallback。
+
+### 驗證
+
+- 一定要用 HTTP server，`file://` 讓 module/fetch 行為失真。
+- macOS 可用 port：8766（8765 可能被占）。
+- `probe.html` 是比截圖更好的 headless 驗證工具，可讀取 DOM 量測尺寸和 overflow。
+- Dashboard 驗證需要外部網路（Google Sheets API v4 列分頁）；資料載入走 gviz CSV（兩者失敗模式不同）。
+- `spectra validate --strict` 只驗結構，不代表瀏覽器渲染已通過。交付前仍要做真實瀏覽器匯出測試。
+
+### 容易踩的點
+
+- `probe.html` 要確認 query params 有正確轉送到 iframe（`split=0`、`export=1`）。
+- `missions/index.json` 未設 `template` 代表預設 timeline，不是資料缺漏。
 - `headline.css` 只應處理版型二節點層級，不要覆蓋共用卡片外框，避免版型一回歸。
-- `missions/index.json` 中未設 `template` 的任務代表預設 timeline，不是資料缺漏。
-- `spectra validate add-headline-template --strict` 只驗 specs/tasks 結構，不代表瀏覽器渲染或 PNG 匯出已真實通過。
-
-## 下一次接手的最短路徑
-
-1. 啟動 server：`python3 -m http.server 8766`
-2. 開 `dashboard.html` 確認可列出 Google Sheet 分頁。
-3. 從 dashboard 開一個分頁，確認 URL 變成 `index.html?sheet=...&title=...` 且工具列可再切分頁。
-4. 開 `index.html?mission=2026_柯文哲案大事記` 看版型二切分卡。
-5. 開 `index.html?mission=2026_柯文哲案大事記&split=0` 看長圖。
-6. 開 `probe.html?m=2026_柯文哲案大事記&export=1` 快速驗 exporter wiring。
-7. 跑 `spectra validate add-headline-template --strict` 和 `spectra validate add-mission-dashboard --strict`。
+- Sheets API key 要在 Google Cloud Console 限制 Sheets API 與部署網域 referrer。

@@ -4,7 +4,7 @@
 export const API_KEY = 'AIzaSyD2Z04MmWE5PgUHektWsDFDeYZUAzNZwUU';
 export const PLACEHOLDER_API_KEY = 'AIzaSyDUMMY_REPLACE_WITH_RESTRICTED_SHEETS_KEY';
 export const DEFAULT_SPREADSHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/edit?gid=0#gid=0';
+  'https://docs.google.com/spreadsheets/d/1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8/edit?gid=2027148002#gid=2027148002';
 
 /**
  * 載入可選試算表清單（spreadsheets.json）；每筆附帶解析後的 spreadsheet id。

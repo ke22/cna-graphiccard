@@ -8,6 +8,7 @@ import { getTemplate } from './templates/registry.js';
 import { setupExport } from './exporter.js';
 import {
   buildTemplateUrl,
+  DEFAULT_SPREADSHEET_URL,
   fetchSpreadsheetTabs,
   loadSpreadsheets,
   parseSheetId,
@@ -21,8 +22,8 @@ const DOT_PATH = 'Timeline dot.svg';
 const CARD_HEIGHT = 1200;
 const HEADER_HEIGHT = 120; // 精簡頁首
 const BODY_PADDING = 20 + 20; // card-body 上下內距
-const FOOTER_ONE_LINE = 84; // 頁尾 1 行保留高度（24px 字 + 內距）
-const FOOTER_TWO_LINE = 116; // 頁尾換行保留高度
+const FOOTER_ONE_LINE = 84; // 頁尾 1 行保留高度（28px 字 + 內距）
+const FOOTER_TWO_LINE = 132; // 頁尾換行保留高度（28px 字 × 2 行 + gap + 內距）
 const CARD_WIDTH = 1200;
 const TOOLBAR_HEIGHT = 60;
 
@@ -101,7 +102,14 @@ async function main() {
   setupPreviewScale();
 
   if (!mission && !sheetOverride) {
-    // 未指定任務時自動載入預設任務（manifest 第一筆），並更新網址讓工具列切換維持有效
+    // 未指定任務時導向預設試算表分頁
+    const defaultId = parseSpreadsheetId(DEFAULT_SPREADSHEET_URL);
+    const defaultGid = parseSheetId(DEFAULT_SPREADSHEET_URL);
+    if (defaultId && defaultGid) {
+      window.location.replace(buildTemplateUrl(defaultId, defaultGid, ''));
+      return;
+    }
+    // 退回本機 CSV 第一筆
     const names = await loadMissionNames();
     if (names.length > 0) {
       const nextParams = new URLSearchParams(window.location.search);
@@ -317,7 +325,7 @@ async function setupSheetSwitch(spreadsheetId, params) {
     sheetSelect.appendChild(option);
   });
   sheetSelect.value = spreadsheetId;
-  sheetSelect.hidden = false;
+  sheetSelect.hidden = sheets.length < 2;
 
   sheetSelect.addEventListener('change', async () => {
     const nextId = sheetSelect.value;

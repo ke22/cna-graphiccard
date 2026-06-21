@@ -30,23 +30,38 @@
         const win = f.contentWindow;
         let rendered = 0;
         let downloaded = 0;
+        const captures = [];
+        const filenames = [];
         win.html2canvas = async (card, options) => {
           rendered += 1;
           const canvas = doc.createElement('canvas');
           canvas.width = Math.round(card.offsetWidth * (options?.scale || 1));
           canvas.height = Math.round(card.offsetHeight * (options?.scale || 1));
-          canvas.toDataURL = () => 'data:image/png;base64,probe';
+          const capture = {
+            scale: options?.scale || 1,
+            width: canvas.width,
+            height: canvas.height,
+            mime: null,
+          };
+          captures.push(capture);
+          canvas.toDataURL = (mime = 'image/png') => {
+            capture.mime = mime;
+            return `data:${mime};base64,probe`;
+          };
           return canvas;
         };
         const originalClick = win.HTMLAnchorElement.prototype.click;
         win.HTMLAnchorElement.prototype.click = function () {
-          downloaded += this.download ? 1 : 0;
+          if (this.download) {
+            downloaded += 1;
+            filenames.push(this.download);
+          }
         };
         win.eval("import('./src/exporter.js')")
           .then((mod) => mod.exportCards(doc.getElementById('btn-export')))
           .then(() => {
             win.HTMLAnchorElement.prototype.click = originalClick;
-            payload.export = { rendered, downloaded };
+            payload.export = { rendered, downloaded, captures, filenames };
             document.getElementById('out').textContent = JSON.stringify(payload);
           });
         return;

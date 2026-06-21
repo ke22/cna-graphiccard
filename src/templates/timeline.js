@@ -6,7 +6,7 @@ import { createDot } from '../renderer.js';
 
 // 標頭別名：每個欄位可接受的標頭名稱（第一個存在者優先）
 const COLUMNS = {
-  year: ['年代', '年'],
+  year: ['年代', '年', '西元'],
   date: ['時間', '日期'],
   content: ['內文', '內容'],
 };
@@ -23,7 +23,7 @@ const COLUMNS = {
  */
 function buildNodes(records, ctx = {}) {
   const fallbackYear = ctx.fallbackYear || '';
-  const hasYear = records.some((r) => r['年代'] !== undefined || r['年'] !== undefined);
+  const hasYear = records.some((r) => r['年代'] !== undefined || r['年'] !== undefined || r['西元'] !== undefined);
 
   let carriedYear = '';
   let prevYear = null;

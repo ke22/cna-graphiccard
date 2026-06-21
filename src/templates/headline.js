@@ -6,7 +6,7 @@ import { createDot } from '../renderer.js';
 
 // 標頭別名：逐列欄位（單一值欄位 標題/資料來源/更新時間 由 csv-loader 共用擷取）
 const COLUMNS = {
-  year: ['年代', '年'],
+  year: ['年代', '年', '西元'],
   date: ['時間', '日期'],
   subhead: ['小標'],
   content: ['內文', '內容'],

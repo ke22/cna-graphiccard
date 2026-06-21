@@ -50,13 +50,26 @@ export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0, tem
 
   const container = getMeasureContainer();
   container.innerHTML = '';
+  // 量測容器必須帶上實際 timeline/版型類別，否則 scoped CSS 不會套用而低估高度。
+  container.className = 'timeline';
+  if (template && template.id) {
+    container.classList.add(`timeline--${template.id}`);
+  }
 
-  // 量測每個節點的實際高度
-  const heights = nodes.map((node, i) => {
+  const measure = (node) => {
     const nodeEl = renderItem(node, template);
     container.appendChild(nodeEl);
     const h = nodeEl.getBoundingClientRect().height;
     container.removeChild(nodeEl);
+    return h;
+  };
+
+  // Template3 每張卡片的首節點都需顯示日期；量測正常與強制日期兩種高度。
+  const heights = nodes.map((node) => measure(node));
+  const firstHeights = nodes.map((node, i) => {
+    const h = template && template.id === 'template3'
+      ? measure({ ...node, forceDate: true })
+      : heights[i];
     if (h > maxHeight) {
       console.warn(
         `[paginator] Node at index ${i} height ${h}px exceeds maxHeight ${maxHeight}px — placed alone.`
@@ -67,12 +80,24 @@ export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0, tem
 
   // 第一階段：貪婪填滿，求出在不切割節點、不超過 maxHeight 下所需的「最少卡片數」。
   // （順序固定的連續分割，貪婪最大化填充即為最少段數）
-  const minCards = packGreedy(heights, maxHeight, firstCardReserve).length;
+  const minCards = packGreedy(heights, firstHeights, maxHeight, firstCardReserve).length;
 
   // 第二階段：平衡分配。用 DP 把節點切成正好 minCards 段，最小化各段高度與「平均目標」的
   // 平方差，使各卡填充最均勻（外觀最一致），且每段不超過 maxHeight。
-  const groups = balancedPartition(heights, maxHeight, minCards, firstCardReserve);
-  return groups.map((group) => group.map((i) => nodes[i]));
+  const groups = balancedPartition(
+    heights,
+    firstHeights,
+    maxHeight,
+    minCards,
+    firstCardReserve
+  );
+  return groups.map((group) =>
+    group.map((i, position) =>
+      template && template.id === 'template3' && position === 0
+        ? { ...nodes[i], forceDate: true }
+        : nodes[i]
+    )
+  );
 }
 
 /**
@@ -84,12 +109,13 @@ export async function paginate(nodes, maxHeight = 888, firstCardReserve = 0, tem
  * @param {number} [firstCardReserve=0]
  * @returns {number[][]} 以索引分組的卡片陣列
  */
-function balancedPartition(heights, maxHeight, k, firstCardReserve = 0) {
+function balancedPartition(heights, firstHeights, maxHeight, k, firstCardReserve = 0) {
   const n = heights.length;
   const prefix = [0];
   for (let i = 0; i < n; i++) prefix.push(prefix[i] + heights[i]);
   // 節點 a..b（含）的高度 = 各節點高 + 之間的間距
-  const footprint = (a, b) => prefix[b + 1] - prefix[a] + (b - a) * NODE_MARGIN;
+  const footprint = (a, b) =>
+    prefix[b + 1] - prefix[a] + (firstHeights[a] - heights[a]) + (b - a) * NODE_MARGIN;
   const target = footprint(0, n - 1) / k;
   // 第 g 段的高度上限（第一段需為西元年徽章留空間）
   const capForGroup = (g) => maxHeight - (g === 1 ? firstCardReserve : 0);
@@ -117,7 +143,7 @@ function balancedPartition(heights, maxHeight, k, firstCardReserve = 0) {
 
   if (dp[k][n] === INF) {
     // 理論上不會發生（minCards 已保證可行），保險起見退回貪婪
-    return packGreedy(heights, maxHeight, firstCardReserve);
+    return packGreedy(heights, firstHeights, maxHeight, firstCardReserve);
   }
 
   const groups = [];
@@ -142,17 +168,17 @@ function balancedPartition(heights, maxHeight, k, firstCardReserve = 0) {
  * @param {number} [firstCardReserve=0]
  * @returns {number[][]} 以索引分組的卡片陣列
  */
-function packGreedy(heights, maxHeight, firstCardReserve = 0) {
+function packGreedy(heights, firstHeights, maxHeight, firstCardReserve = 0) {
   const cards = [];
   let current = [];
   let accumulated = 0;
   heights.forEach((h, i) => {
     const cap = maxHeight - (cards.length === 0 ? firstCardReserve : 0);
-    const footprint = current.length > 0 ? NODE_MARGIN + h : h;
+    const footprint = current.length > 0 ? NODE_MARGIN + h : firstHeights[i];
     if (current.length > 0 && accumulated + footprint > cap) {
       cards.push(current);
       current = [i];
-      accumulated = h;
+      accumulated = firstHeights[i];
     } else {
       current.push(i);
       accumulated += footprint;

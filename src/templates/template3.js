@@ -5,7 +5,7 @@
 import { createDot } from '../renderer.js';
 
 const COLUMNS = {
-  year: ['年代', '年'],
+  year: ['年代', '年', '西元'],
   date: ['時間', '日期'],
   subhead: ['小標'],
   content: ['內文', '內容'],
@@ -39,7 +39,7 @@ function parseTime(rawValue) {
  *
  * @param {Array<Object>} records
  * @param {{fallbackYear?: string}} [ctx]
- * @returns {Array<{year: string, rawTime: string, dateText: string, clockText: string, timeSuffix: string, subhead: string, content: string, badge: boolean}>}
+ * @returns {Array<{year: string, rawTime: string, dateText: string, clockText: string, timeSuffix: string, subhead: string, content: string, badge: boolean, showDate: boolean}>}
  */
 function buildNodes(records, ctx = {}) {
   const fallbackYear = ctx.fallbackYear || '';
@@ -59,10 +59,10 @@ function buildNodes(records, ctx = {}) {
     const timeParts = parseTime(pick(r, COLUMNS.date));
     const year = carriedYear || fallbackYear;
     const badge = Boolean(year) && year !== prevYear;
-    
-    // Check if date changes (within the same year)
+
+    // 同年同日的連續事件共用日期標題。
     const showDate = !(year === prevYear && timeParts.dateText === prevDateText);
-    
+
     prevYear = year;
     prevDateText = timeParts.dateText;
     nodes.push({ year, ...timeParts, subhead, content, badge, showDate });
@@ -72,34 +72,38 @@ function buildNodes(records, ctx = {}) {
 }
 
 /**
- * 渲染版型三節點內部結構。時間欄位優先拆成日期與時刻；
- * 無法拆分時以原始時間文字單行顯示。
+ * 渲染版型三節點：可選日期標題（大點）＋事件列（小點 + 時刻/小標合併一行 + 內文獨立一行）。
+ * forceDate 由斷頁器在同日續頁的首節點設定，確保每張卡片都有日期脈絡。
  *
- * @param {{dateText: string, clockText: string, timeSuffix: string, rawTime: string, subhead: string, content: string, showDate?: boolean}} node
+ * @param {{dateText: string, clockText: string, timeSuffix: string, rawTime: string, subhead: string, content: string, showDate?: boolean, forceDate?: boolean}} node
  * @returns {HTMLElement}
  */
-// 單行表頭：日期欄 + 圓點 + 時刻，三者同列；小標／內文於其下分行。
-// 日期僅在 showDate 為真時顯示；同日後續節點留白但保留欄寬，使圓點對齊。
 function renderNode(node) {
   const el = document.createElement('div');
   el.className = 'node node--template3';
 
-  // 表頭橫列：日期欄、圓點、時刻列共置一行
-  const header = document.createElement('div');
-  header.className = 'node-header';
+  if ((node.showDate || node.forceDate) && (node.dateText || node.rawTime)) {
+    const dateHeader = document.createElement('div');
+    dateHeader.className = 'template3-date-header';
+    const dateDot = createDot();
+    dateDot.classList.add('template3-date-dot');
+    dateHeader.appendChild(dateDot);
 
-  // 日期欄（固定寬度由 CSS 控制）：同日重複時留白，仍占欄寬以對齊圓點
-  const dateDiv = document.createElement('div');
-  dateDiv.className = 'node-date-part';
-  dateDiv.textContent = node.showDate ? node.dateText || node.rawTime || '' : '';
-  header.appendChild(dateDiv);
+    const dateText = document.createElement('div');
+    dateText.className = 'node-date-part';
+    dateText.textContent = node.dateText || node.rawTime || '';
+    dateHeader.appendChild(dateText);
+    el.appendChild(dateHeader);
+  }
 
-  // 時間軸圓點：位於日期欄之後，連線經過此處
-  header.appendChild(createDot());
+  const event = document.createElement('div');
+  event.className = 'template3-event';
+  const eventDot = createDot();
+  eventDot.classList.add('template3-event-dot');
+  event.appendChild(eventDot);
 
-  // 時刻列：可解析出 HH:mm 時顯示時刻（+ 後綴）；無時刻則不重複日期（日期已在日期欄）
-  const time = document.createElement('div');
-  time.className = 'node-time-split';
+  // 無法解析時原始文字已在日期標題顯示，事件列不再重複。
+  // 有時刻時，小標併入同一行；無時刻時，小標獨自佔據第一行。
   if (node.clockText) {
     const clockRow = document.createElement('div');
     clockRow.className = 'node-clock-row';
@@ -113,25 +117,28 @@ function renderNode(node) {
       suffix.textContent = node.timeSuffix;
       clockRow.appendChild(suffix);
     }
-    time.appendChild(clockRow);
-  }
-  header.appendChild(time);
-
-  el.appendChild(header);
-
-  if (node.subhead) {
+    if (node.subhead) {
+      const subhead = document.createElement('span');
+      subhead.className = 'node-subhead node-subhead-inline';
+      subhead.textContent = node.subhead;
+      clockRow.appendChild(subhead);
+    }
+    event.appendChild(clockRow);
+  } else if (node.subhead) {
     const subhead = document.createElement('div');
     subhead.className = 'node-subhead';
     subhead.textContent = node.subhead;
-    el.appendChild(subhead);
+    event.appendChild(subhead);
   }
 
   if (node.content) {
     const content = document.createElement('div');
     content.className = 'node-content';
     content.textContent = node.content;
-    el.appendChild(content);
+    event.appendChild(content);
   }
+
+  el.appendChild(event);
 
   return el;
 }
