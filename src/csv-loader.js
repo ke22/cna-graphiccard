@@ -141,14 +141,15 @@ export async function loadMeta(missionName) {
 
 /**
  * 載入指定任務的 CSV 並回傳解析後的列與整張卡的單一值 meta。
- * 資料來源優先序：URL ?sheet= 覆寫 > manifest 的 sheet（Google Sheet）> 本機 CSV。
+ * 資料來源優先序：URL 的 spreadsheet/gid（或舊版 ?sheet=）覆寫 >
+ * manifest 的 sheet（Google Sheet）> 本機 CSV。
  * 抓 Google Sheet 失敗（離線/CORS/權限）時自動退回本機 CSV。
  *
  * 逐列欄位映射為節點交由各版型的 buildNodes 處理（此處不綁定特定版型）。
  * 單一值 meta（年代/標題/資料來源/更新時間）為各版型共用的「取整欄第一個非空值」。
  *
  * @param {string} missionName - 任務名稱（對應 missions/ 下的子目錄）
- * @param {string} [sheetUrlOverride] - 由 URL ?sheet= 傳入的覆寫網址
+ * @param {string} [sheetUrlOverride] - 由 URL 參數組成的 Google Sheet 覆寫網址
  * @returns {Promise<{records: Array<Object>, sheetMeta: {year: string, title: string, source: string, updated: string}}>}
  *   records 為 parseCSV 輸出（以標頭為 key 的物件陣列）；sheetMeta 取自欄位第一個非空值
  * @throws {Error} 當任務不存在或所有來源皆無法載入時，錯誤訊息包含任務名稱

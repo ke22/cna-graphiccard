@@ -72,15 +72,15 @@ export async function fetchSpreadsheetTabs(spreadsheetId) {
 
 export function buildGvizCsvUrl(spreadsheetId, sheetId) {
   return (
-    `https://docs.google.com/spreadsheets/d/${spreadsheetId}` +
-    `/gviz/tq?tqx=out:csv&gid=${sheetId}`
+    `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}` +
+    `/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(sheetId)}`
   );
 }
 
 export function buildTemplateUrl(spreadsheetId, sheetId, title, options = {}) {
-  const gvizUrl = buildGvizCsvUrl(spreadsheetId, sheetId);
   const params = new URLSearchParams({
-    sheet: gvizUrl,
+    spreadsheet: spreadsheetId,
+    gid: sheetId,
     title,
   });
 

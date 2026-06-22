@@ -7,6 +7,7 @@ import { renderCards, setMission, setLogo, setDot, setMeta } from './renderer.js
 import { getTemplate } from './templates/registry.js';
 import { setupExport } from './exporter.js';
 import {
+  buildGvizCsvUrl,
   buildTemplateUrl,
   DEFAULT_SPREADSHEET_URL,
   fetchSpreadsheetTabs,
@@ -87,7 +88,16 @@ function updateQuery(nextValues) {
 async function main() {
   const params = new URLSearchParams(window.location.search);
   const mission = params.get('mission') || '';
-  const sheetOverride = params.get('sheet') || '';
+  const legacySheetOverride = params.get('sheet') || '';
+  const spreadsheetOverride = params.get('spreadsheet') || '';
+  const gidOverride = params.get('gid') || '';
+  // CNA's edge firewall rejects a nested encoded URL in ?sheet=. New links pass
+  // only the spreadsheet ID and gid, then construct the Google URL client-side.
+  const sheetOverride =
+    legacySheetOverride ||
+    (spreadsheetOverride && gidOverride
+      ? buildGvizCsvUrl(spreadsheetOverride, gidOverride)
+      : '');
 
   const titleEl = document.getElementById('mission-title');
   const exportBtn = document.getElementById('btn-export');
@@ -180,7 +190,8 @@ async function main() {
     const baseMeta = mission
       ? await loadMeta(mission)
       : { source: '', updated: '', template: undefined }; // manifest 的資料來源/更新時間/版型
-    // 資料來源：URL ?sheet= 可覆寫為 Google Sheet 公開 CSV 網址（loader 已加 cache-bust）
+    // 資料來源：URL ?spreadsheet=&gid=（或舊版 ?sheet=）可覆寫 Google Sheet
+    // 公開 CSV 網址（loader 已加 cache-bust）
     const { records, sheetMeta } = await loadRecords(mission, sheetOverride || undefined);
 
     // 版型優先序：URL ?template= > manifest template 欄 > 預設 timeline（未知 id 由 registry 退回）
