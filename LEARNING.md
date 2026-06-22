@@ -1,6 +1,66 @@
 # Learning — CNA 圖卡產生器
 
-最後更新：2026-06-21
+最後更新：2026-06-22
+
+---
+
+## Session 2026-06-22（production deployment）
+
+### 不要把完整外部 URL 塞進 production query parameter
+
+本機與一般靜態伺服器都接受：
+
+```text
+index.html?sheet=https%3A%2F%2Fdocs.google.com%2F...
+```
+
+但 CNA edge/WAF 會把「query 內含 encoded `https://`」判定為危險請求，在 HTML 和 JavaScript 執行前直接回 `403 Forbidden`。因此前端的 legacy fallback 或 redirect 無法修復 production 舊連結。
+
+正確設計是只傳不可執行的識別值：
+
+```text
+index.html?spreadsheet=<spreadsheet-id>&gid=<sheet-id>&title=<title>
+```
+
+再由 `src/main.js` 呼叫 `buildGvizCsvUrl()`，在 client-side 組合 Google gviz URL。遇到 CDN/WAF 問題時，驗證時要分開測：無 query、一般 query、nested URL query、以及 ID-only query，才能確定是應用程式錯誤還是 edge policy。
+
+---
+
+### HTTP 200 不等於修正版已部署
+
+`index.html` 回 200 只能證明檔案存在。這次 production 仍提供舊 `main.js`，所以根頁面載入後仍產生舊的 blocked URL。可靠的部署驗證應直接檢查變更過的 asset：
+
+- 比對 `Content-Length` 或 checksum。
+- 查看 `Last-Modified`。
+- 用 cache-busting query 取得檔案並搜尋修正版 marker。
+- 驗證使用者實際走到的最終 URL，而不是只測入口頁。
+
+本次具體訊號：production `src/main.js` 是 13,152 bytes，修正版是 13,648 bytes。CNA CDN 使用 `max-age=180`，上傳後最多可能等三分鐘才看到新內容。
+
+---
+
+### GitHub 帳號不是 FTP 自動部署的網路邊界
+
+Personal GitHub repository 可以保存 Actions secrets 並執行 workflow，但 GitHub-hosted runner 位於公網。`webap.cna.com.tw` 只在 CNA DNS 解析為 private IP `172.30.142.2`，GitHub-hosted runner 因此出現 `Name or service not known`。改帳號、改 FTP 密碼或重跑 job 都不會解決 routing/DNS 問題。
+
+可行方案只有：
+
+1. 在 CNA 網路／VPN 內架設 self-hosted runner；或
+2. 由 CNA IT 提供受控、可從公網到達的 Explicit FTPS endpoint。
+
+Self-hosted runner 是 GitHub 與 CNA private network 的 bridge。它能執行 repository workflow，應使用 CNA 管理的專用機器、最小權限 FTP 帳號與專用 remote directory，不應長期使用個人日常工作機。
+
+---
+
+### `mirror --delete` 必須綁定專用子目錄
+
+FTP 自動部署使用 `lftp mirror --reverse --delete` 時，錯誤的 remote path 可能刪除同層其他專案。`DEPLOY_PATH` 必須是已確認的專用目錄（本專案為 `/missions/timeline`），不能使用 `/missions` 等共享 parent。第一次上線或網路架構未確認時，先建立只含 production assets 的本機 package 並用 FileZilla 手動覆寫，比直接啟用 delete sync 安全。
+
+---
+
+### Console 訊息要按來源分類
+
+`contentscript.js` 的 `MaxListenersExceededWarning`、`ObjectMultiplex` 與 orphaned stream 訊息來自瀏覽器 extension，不是本專案程式碼。`favicon.ico 404` 也不影響卡片功能。除錯時先看 request URL、HTTP status、initiator 與 repository source path，避免被 extension noise 帶離真正的 403。
 
 ---
 
@@ -105,8 +165,8 @@ dialog.addEventListener('click', (e) => {
 
 ### Dashboard / Sheet 切換關鍵
 
-- `mission`（manifest 任務）與 `sheet`（gviz URL 覆寫）是兩個獨立機制，不互相依賴。
-- `dashboard.html` 開出的 URL 是 `index.html?sheet=...&title=...`，不需要 `mission`。
+- `mission`（manifest 任務）與 `spreadsheet`/`gid`（Google Sheet 覆寫）是兩個獨立機制，不互相依賴。
+- `dashboard.html` 開出的 URL 是 `index.html?spreadsheet=...&gid=...&title=...`，不需要 `mission`。舊版曾使用 `sheet=<encoded gviz URL>`，但 production WAF 會拒絕該格式。
 - 切換分頁是整頁導向，不是局部 fetch。導向時保留 `template` 參數，否則會 fallback 到版型一。
 - 卡片頁首優先用 sheet/CSV 的 `標題` 欄，`?title=` 只是分頁名稱 fallback。
 

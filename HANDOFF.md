@@ -1,6 +1,6 @@
 # Handoff — CNA 圖卡產生器
 
-最後更新：2026-06-21
+最後更新：2026-06-22
 
 ## 這是什麼
 
@@ -14,22 +14,14 @@
 
 ## 目前進行中的 Spectra change
 
-目前沒有進行中的 change。可執行以下指令歸檔已完成的 change：
-
-```bash
-spectra archive tutorial-user-popup
-spectra archive accessible-card-typography
-spectra archive optimize-dashboard-navigation
-spectra archive adjust-template3-layout
-spectra archive add-system-tutorial
-```
+目前沒有進行中的 change。2026-06-22 已將本輪七個完成項目全部歸檔，`spectra list` 顯示 `No active changes.`，`spectra validate --all` 通過。
 
 ## 如何啟動
 
 必須用 HTTP 伺服器開啟，不能雙擊用 `file://`，因為 ES module 與 fetch 會被瀏覽器限制。
 
 ```bash
-cd /Users/yulincho/Documents/01_Github/cna-graphiccard
+cd /Users/yulincho/Documents/GitHub/cna-graphiccard
 python3 -m http.server 8766
 ```
 
@@ -49,6 +41,46 @@ http://localhost:8766/index.html?mission=2024_南韓戒嚴大事記&template=tem
 
 改完 JS/CSS 後瀏覽器要強制重整 `Cmd+Shift+R`。`python3 -m http.server` 不會送 no-cache header。如果仍看到舊樣式，改用無痕模式，或開 DevTools → Application → Local Storage，清除 `cna-dashboard-sheet-url`。
 
+## Production 部署狀態
+
+- 公開路徑：`https://www.cna.com.tw/missions/timeline/`
+- FTP/Explicit FTPS host：`webap.cna.com.tw:21`
+- 遠端目錄：`/missions/timeline`
+- 手動上傳包：`cna-graphiccard-upload-2026-06-22/`（32 個 production files，刻意不納入 Git）
+- 最新程式 commit：`7da6c00 fix: avoid nested sheet URL in production [skip ci]`
+
+GitHub Actions 的 `Deploy to own server` workflow 已設定，但 GitHub-hosted runner 無法解析／連線 CNA 內部 FTP。`webap.cna.com.tw` 在 CNA 網路內解析為 private IP `172.30.142.2`；repository 目前沒有 self-hosted runner。因此現階段要從 CNA 網路或 VPN 內用 FileZilla 手動上傳。若要恢復自動部署，需要在 CNA 網路內註冊 self-hosted runner，建議加 label `cna-deploy` 並把 workflow 改成：
+
+```yaml
+runs-on: [self-hosted, cna-deploy]
+```
+
+目前 production 曾確認仍在提供舊版 `src/main.js`（13,152 bytes）；修正版為 13,648 bytes。若 production 仍導向 `?sheet=https...`，請從上傳包覆寫以下三個檔案到 `/missions/timeline/src/`：
+
+```text
+src/main.js
+src/sheets-api.js
+src/csv-loader.js
+```
+
+CNA CDN 回應 `cache-control: max-age=180`，覆寫後最多等三分鐘並用 `Cmd+Shift+R` 強制重整。
+
+### Production URL 參數
+
+CNA edge/WAF 會在請求進入應用程式前拒絕把完整 Google URL 放進 query 的舊格式：
+
+```text
+?sheet=https%3A%2F%2Fdocs.google.com%2F...
+```
+
+這個格式固定回 `403 Forbidden`，前端 JavaScript 無法攔截或轉址。新格式只傳安全的 ID：
+
+```text
+https://www.cna.com.tw/missions/timeline/index.html?spreadsheet=1oQgXm582APOM-OqPrztH4rN1yYrJT4OLGTZhuRAcbi8&gid=2027148002&title=
+```
+
+`src/main.js` 會在瀏覽器內把 `spreadsheet` 與 `gid` 組成 gviz CSV URL。程式仍可讀舊 `sheet` 參數供本機相容，但 production edge 會先擋掉舊 URL，所以 production 不能再使用舊書籤。
+
 ## 主要檔案
 
 ```text
@@ -58,7 +90,7 @@ tutorial.html                      開發者教學頁：章節式導覽，CSV sc
 probe.html                         headless/iframe 驗證工具
 
 src/
-  main.js                          主流程：URL 參數、載入資料、選版型、斷頁、渲染；無 query 時自動導向預設試算表
+  main.js                          主流程：URL 參數、載入資料、選版型、斷頁、渲染；以 spreadsheet/gid 安全參數載入 Google Sheet
   dashboard.js                     dashboard 連結試算表、列分頁、開啟模板；init() 自動連結預設試算表
   tutorial.js                      教學頁 IntersectionObserver 捲動高亮（純 script，無 type="module"）
   tutorial-popup.js                共用彈窗模組：initTutorialPopup() 建立 <dialog>、兩個 tab（操作流程 / 版型說明）
@@ -66,7 +98,7 @@ src/
   paginator.js                     量測節點高度、切分/不切分、DP 平衡斷頁、版型三日期延續分頁
   renderer.js                      共用卡片外框、頁首、年代徽章、頁尾
   exporter.js                      html2canvas 以 2× 比例逐卡輸出 JPG
-  sheets-api.js                    Sheets API、spreadsheet/gid 解析、gviz URL 組裝；DEFAULT_SPREADSHEET_URL 預設試算表
+  sheets-api.js                    Sheets API、spreadsheet/gid 解析、CNA-safe template URL 與 gviz URL 組裝
 
   templates/
     registry.js                    template id → module；未知 id fallback timeline
@@ -101,7 +133,7 @@ export const DEFAULT_SPREADSHEET_URL =
 
 **三個地方**依賴這個常數：
 
-1. `src/main.js`：`index.html` 無任何 query 時，`window.location.replace(buildTemplateUrl(...))` 導向預設試算表第一個分頁。
+1. `src/main.js`：`index.html` 無任何 query 時，`window.location.replace(buildTemplateUrl(...))` 以 `spreadsheet=<id>&gid=<id>` 導向預設試算表第一個分頁。
 2. `src/dashboard.js`：`init()` 優先序：localStorage `cna-dashboard-sheet-url` > `spreadsheets.json` 第一筆 > `DEFAULT_SPREADSHEET_URL`，任何情況都會自動連結。
 3. `src/sheets-api.js`：提供給上述兩個檔案 import。
 
@@ -195,7 +227,8 @@ http://localhost:8766/probe.html?m=2024_南韓戒嚴大事記&template=template3
 
 ## 後續建議
 
-- 歸檔已完成的 change（見上方指令清單）。
+- 先確認修正版三個 JS 已覆寫至 production，並用新參數 URL 驗證不再出現 403。
+- 若要自動部署，請由 CNA IT 提供／核准 CNA 內網 self-hosted runner；不要把 personal daily-use laptop 當長期 runner。
 - 若要替換預設試算表，只改 `src/sheets-api.js` 的 `DEFAULT_SPREADSHEET_URL`。記得同時清除使用者瀏覽器的 `cna-dashboard-sheet-url` localStorage，否則舊 URL 仍優先。
 - 若要新增版型：沿用 `src/templates/{id}.js` 的 `{ id, columns, buildNodes, renderNode }` 介面；在 `registry.js` 登記；記得在 `tutorial-popup.js` 的版型說明 tab 補充欄位說明。
 - 版型三新增任務：`missions/index.json` 加 `template: "template3"` 即可，CSV 欄位與版型二相同。
