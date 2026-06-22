@@ -1,0 +1,119 @@
+name: Deploy CNA embed
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cna-embed-__SLUG__
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: webap.cna.com.tw
+      DEPLOY_PORT: '21'
+      DEPLOY_TLS: 'true'
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+      DEPLOY_SOURCE: __SOURCE__
+      DEPLOY_PATH: /missions/embed/__SLUG__
+      PUBLIC_BASE_URL: https://www.cna.com.tw/missions/embed/__SLUG__
+      DEPLOY_ENTRYPOINTS: __ENTRYPOINTS__
+      DEPLOY_LOADER: __LOADER__
+      DEPLOY_MESSAGE_TYPE: __MESSAGE_TYPE__
+      DEPLOY_TEST_PAGE: __TEST_PAGE__
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment boundary
+        run: |
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PASSWORD"
+          test -d "$DEPLOY_SOURCE"
+          test "$DEPLOY_PATH" != "/missions/embed"
+          test "$DEPLOY_PATH" != "/missions"
+
+      - name: Smoke test production artifact
+        run: |
+          test -f "$DEPLOY_SOURCE/$DEPLOY_LOADER"
+          test -f "$DEPLOY_SOURCE/$DEPLOY_TEST_PAGE"
+          grep --fixed-strings --quiet "$DEPLOY_MESSAGE_TYPE" "$DEPLOY_SOURCE/$DEPLOY_LOADER"
+          grep --fixed-strings --quiet "contentWindow" "$DEPLOY_SOURCE/$DEPLOY_LOADER"
+
+          IFS=',' read -ra entrypoints <<< "$DEPLOY_ENTRYPOINTS"
+          for entrypoint in "${entrypoints[@]}"; do
+            test -f "$DEPLOY_SOURCE/$entrypoint"
+            grep --fixed-strings --quiet "postMessage" "$DEPLOY_SOURCE/$entrypoint"
+            grep --fixed-strings --quiet "$DEPLOY_MESSAGE_TYPE" "$DEPLOY_SOURCE/$entrypoint"
+          done
+
+          python3 - "$DEPLOY_SOURCE" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          broad_delete = re.compile(
+              r"filter\s*\(\s*\w+\s*=>\s*\w+\s*!==?\s*[A-Z_][A-Z0-9_]*\s*\)",
+              re.S,
+          )
+          for worker in Path(sys.argv[1]).rglob("sw.js"):
+              text = worker.read_text(encoding="utf-8", errors="replace")
+              if "caches.keys" in text and broad_delete.search(text):
+                  raise SystemExit(f"Unsafe cross-project cache deletion: {worker}")
+          PY
+
+          python3 -m http.server 4173 \
+            --bind 127.0.0.1 \
+            --directory "$DEPLOY_SOURCE" >/tmp/cna-embed-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for artifact in "$DEPLOY_LOADER" "$DEPLOY_TEST_PAGE" "${entrypoints[@]}"; do
+            curl --fail --silent --show-error --retry 5 --retry-connrefused \
+              --connect-timeout 5 --max-time 30 \
+              --output /dev/null "http://127.0.0.1:4173/$artifact"
+          done
+
+          kill "$server_pid"
+          trap - EXIT
+
+      - name: Install FTP client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lftp
+
+      - name: Sync production artifact
+        run: |
+          encoded_user="$(jq -rn --arg value "$DEPLOY_USER" '$value | @uri')"
+          encoded_password="$(jq -rn --arg value "$DEPLOY_PASSWORD" '$value | @uri')"
+
+          lftp <<LFTP
+          set cmd:fail-exit true
+          set net:max-retries 2
+          set net:timeout 30
+          set ssl:verify-certificate true
+          set ftp:ssl-force $DEPLOY_TLS
+          set ftp:ssl-protect-data $DEPLOY_TLS
+          open "ftp://$encoded_user:$encoded_password@$DEPLOY_HOST:$DEPLOY_PORT"
+          mirror --reverse --delete --verbose \
+            --exclude-glob=.DS_Store \
+            "$DEPLOY_SOURCE/" "$DEPLOY_PATH"
+          bye
+          LFTP
+
+      - name: Verify public entrypoints
+        run: |
+          IFS=',' read -ra entrypoints <<< "$DEPLOY_ENTRYPOINTS"
+          for entrypoint in "${entrypoints[@]}"; do
+            curl --fail --silent --show-error --retry 3 \
+              --connect-timeout 10 --max-time 60 \
+              --output /dev/null "$PUBLIC_BASE_URL/$entrypoint"
+          done

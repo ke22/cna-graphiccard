@@ -1,0 +1,4 @@
+interface:
+  display_name: "CNA FTP Embed Deploy"
+  short_description: "Configure safe FTPS deployment for CNA embeds"
+  default_prompt: "Use $cna-ftp-deploy to configure this repository for safe deployment under /missions/embed."

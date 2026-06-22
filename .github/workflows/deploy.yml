@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to own server
 
 on:
   push:
@@ -7,24 +7,85 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: production-deploy
   cancel-in-progress: true
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '21' }}
+      DEPLOY_TLS: ${{ secrets.DEPLOY_TLS || 'true' }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment settings
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PASSWORD"
+          test -n "$DEPLOY_PATH"
+          test "$DEPLOY_TLS" = "true" || test "$DEPLOY_TLS" = "false"
+
+      - name: Smoke test static site
+        run: |
+          for entrypoint in index.html dashboard.html tutorial.html probe.html; do
+            test -f "$entrypoint"
+          done
+
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/site-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for entrypoint in index.html dashboard.html tutorial.html probe.html; do
+            curl --fail --silent --show-error --retry 5 --retry-connrefused \
+              --connect-timeout 5 --max-time 30 \
+              --output /dev/null "http://127.0.0.1:4173/$entrypoint"
+          done
+
+          kill "$server_pid"
+          trap - EXIT
+
+      - name: Install FTP client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lftp
+
+      - name: Sync files to server
+        run: |
+          encoded_user="$(jq -rn --arg value "$DEPLOY_USER" '$value | @uri')"
+          encoded_password="$(jq -rn --arg value "$DEPLOY_PASSWORD" '$value | @uri')"
+
+          lftp <<LFTP
+          set cmd:fail-exit true
+          set net:max-retries 2
+          set net:timeout 30
+          set ssl:verify-certificate true
+          set ftp:ssl-force $DEPLOY_TLS
+          set ftp:ssl-protect-data $DEPLOY_TLS
+          open "ftp://$encoded_user:$encoded_password@$DEPLOY_HOST:$DEPLOY_PORT"
+          mirror --reverse --delete --verbose \
+            --exclude-glob=.git/ \
+            --exclude-glob=.github/ \
+            --exclude-glob=.claude/ \
+            --exclude-glob=.spectra.yaml \
+            --exclude-glob=.DS_Store \
+            --exclude-glob=openspec/ \
+            --exclude-glob=AGENTS.md \
+            --exclude-glob=CLAUDE.md \
+            --exclude-glob=GEMINI.md \
+            --exclude-glob=HANDOFF.md \
+            --exclude-glob=LEARNING.md \
+            --exclude-glob=DEPLOYMENT.md \
+            --exclude-glob=.gitignore \
+            ./ "$DEPLOY_PATH"
+          bye
+          LFTP
