@@ -8,6 +8,7 @@ import { getTemplate } from './templates/registry.js';
 import { setupExport } from './exporter.js';
 import {
   buildGvizCsvUrl,
+  buildSheetEditUrl,
   buildTemplateUrl,
   DEFAULT_SPREADSHEET_URL,
   fetchSpreadsheetTabs,
@@ -274,6 +275,14 @@ async function setupMissionSwitch(sheetOverride) {
   const missionSelect = document.getElementById('mission-select');
 
   if (!missionSelect || !spreadsheetId) return;
+
+  // 已確認載入某試算表：將「查看原始表」連結指向目前預覽分頁的編輯網址並顯示。
+  // 本機 CSV 模式因上方提前 return，連結維持 index.html 預設的 hidden。
+  const sourceSheetLink = document.getElementById('btn-source-sheet');
+  if (sourceSheetLink && currentSheetId) {
+    sourceSheetLink.href = buildSheetEditUrl(spreadsheetId, currentSheetId);
+    sourceSheetLink.hidden = false;
+  }
 
   setupSheetSwitch(spreadsheetId, params);
 

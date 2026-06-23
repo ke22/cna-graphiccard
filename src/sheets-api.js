@@ -77,6 +77,12 @@ export function buildGvizCsvUrl(spreadsheetId, sheetId) {
   );
 }
 
+export function buildSheetEditUrl(spreadsheetId, sheetId) {
+  const id = encodeURIComponent(spreadsheetId);
+  const gid = encodeURIComponent(sheetId);
+  return `https://docs.google.com/spreadsheets/d/${id}/edit?gid=${gid}#gid=${gid}`;
+}
+
 export function buildTemplateUrl(spreadsheetId, sheetId, title, options = {}) {
   const params = new URLSearchParams({
     spreadsheet: spreadsheetId,
